@@ -1,23 +1,23 @@
 #include "triangleEngine.hpp"
+#include "triangleCamera.hpp"
 #include "triangleDevice.hpp"
 #include "triangleModel.hpp"
 #include "trianglePipeline.hpp"
 #include "triangleSwapchain.hpp"
-#include "vulkan/vulkan.hpp"
-#include "vulkan/vulkan_enums.hpp"
-#include "vulkan/vulkan_handles.hpp"
-#include "vulkan/vulkan_structs.hpp"
-#include <cstring>
-#include <glm/detail/qualifier.hpp>
-#include <glm/ext/matrix_transform.hpp>
-#include <glm/trigonometric.hpp>
+
+#include <GLFW/glfw3.h>
+#include <glm/fwd.hpp>
 
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtx/euler_angles.hpp>
+#include <glm/detail/qualifier.hpp>
+#include <glm/ext/matrix_transform.hpp>
+#include <glm/trigonometric.hpp>
 
 #include <array>
+#include <cstring>
 #include <iostream>
 #include <memory>
 #include <optional>
@@ -31,6 +31,7 @@ TriangleEngine::TriangleEngine()
 {
     
     // triangleModel = std::make_unique<TriangleModel>(triangleDevice, vertices, indices);
+    triangleCamera = std::make_unique<TriangleCamera>(triangleWindow.getWindow(), WIDTH, HEIGHT);
     triangleModel = std::make_unique<TriangleModel>(triangleDevice, cubeVertices, cubeIndices);
     triangleModel->createUniformBuffers(triangleSwapchain.MAX_FRAMES_IN_FLIGHT);
 
@@ -51,9 +52,14 @@ TriangleEngine::~TriangleEngine()
 void TriangleEngine::run()
 {
     uint32_t currentFrame = 0;
+    triangleCamera->setCamera(glm::vec3(0.f, 0.f, 2.f), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f));
     while(!triangleWindow.shouldClose())
     {
         glfwPollEvents();
+        
+        triangleCamera->processCameraMovement();
+        triangleCamera->processCameraRotation(0.2f);
+
         drawFrames(currentFrame);
     }
 
@@ -175,12 +181,15 @@ void TriangleEngine::updateUniformBuffer(uint32_t currentImage)
 
     TriangleModel::UniformBufferObject ubo{};
     glm::mat4 transform = glm::translate(glm::mat4{1.0f}, {0.0f, 0.0f, 0.0f});
-    transform = transform * glm::eulerAngleXYZ(0.5f + time, 0.5f + time, 0.5f + time);
+    // transform = transform * glm::eulerAngleXYZ(0.5f + time, 0.5f + time, 0.5f + time);
 
     // ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 1.0f));
     ubo.model = transform;
-    ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.proj = glm::perspective(glm::radians(45.0f), triangleSwapchain.getExtent().width / (float) triangleSwapchain.getExtent().height, 0.1f, 10.0f);
+    cameraPos.x = sin(glfwGetTime()) * 10.0f;
+    cameraPos.z = cos(glfwGetTime()) * 10.0f;
+    ubo.view = triangleCamera->getView();
+    // ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+    ubo.proj = glm::perspective(glm::radians(45.0f), triangleSwapchain.getExtent().width / (float) triangleSwapchain.getExtent().height, 0.1f, 20.0f);
 
     ubo.proj[1][1] *= -1;
 

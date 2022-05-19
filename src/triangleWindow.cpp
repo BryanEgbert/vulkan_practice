@@ -1,5 +1,6 @@
 #include "triangleWindow.hpp"
 
+#include <GLFW/glfw3.h>
 #include <stdexcept>
 
 TriangleWindow::TriangleWindow(int width, int height, const char* name) 
@@ -13,15 +14,20 @@ void TriangleWindow::initWindow()
 {
     glfwInit();
 
+    int count;
+    GLFWmonitor** monitos = glfwGetMonitors(&count);
+
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
+    // glfwSetCursorPosCallback(window, this->mouseCallback);
     window = glfwCreateWindow(width, height, windowName, nullptr, nullptr);
+    
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 }
 
 TriangleWindow::~TriangleWindow()
 {
-    std::cout << "Deleting window...\n";
     glfwDestroyWindow(window);
     glfwTerminate();
 }

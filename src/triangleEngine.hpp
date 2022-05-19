@@ -1,5 +1,6 @@
 #pragma once
 
+#include "triangleCamera.hpp"
 #include "triangleDevice.hpp"
 #include "triangleModel.hpp"
 #include "trianglePipeline.hpp"
@@ -85,7 +86,10 @@ private:
     std::unique_ptr<TrianglePipeline> trianglePipeline;
     std::unique_ptr<TriangleModel> triangleModel;
     std::unique_ptr<TriangleDescriptor> triangleDescriptor;
+    std::unique_ptr<TriangleCamera> triangleCamera;
     std::vector<vk::CommandBuffer> commandBuffers;
+
+    glm::vec3 cameraPos = glm::vec3(2.0f, 2.0f, 2.0f);
 
     void createPipelineLayout();
     void createPipeline();

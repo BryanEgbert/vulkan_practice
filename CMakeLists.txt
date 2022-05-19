@@ -7,6 +7,7 @@ enable_testing()
 find_package(glfw3 3.3 REQUIRED)
 find_package(Vulkan REQUIRED)
 find_package(glm REQUIRED)
+find_package(imgui REQUIRED)
 
 file(GLOB_RECURSE SRC_FILE ${CMAKE_CURRENT_SOURCE_DIR}/src/*)
 add_executable(vulkan_basic ${SRC_FILE})

@@ -18,11 +18,14 @@ public:
     bool shouldClose() { return glfwWindowShouldClose(window); };
     void createSurface(VkInstance instance, VkSurfaceKHR* surface);
     void getFrameBufferSize(int* width, int* height) { return glfwGetFramebufferSize(window, width, height); };
+    GLFWwindow* getWindow() { return window; };
+
 private:
     const int width;
     const int height;
 
     const char* windowName;
+
     GLFWwindow* window;
 
     void initWindow();
