@@ -6,6 +6,7 @@
 #include "trianglePipeline.hpp"
 #include "triangleRenderer.hpp"
 #include "triangleSwapchain.hpp"
+#include "triangleUI.hpp"
 #include "triangleWindow.hpp"
 #include "vulkan/vulkan_handles.hpp"
 #include "triangleDescriptor.hpp"
@@ -81,6 +82,7 @@ private:
     TriangleWindow triangleWindow{WIDTH, HEIGHT, "Vulkan"};
     TriangleDevice triangleDevice{"vulkan basic", triangleWindow};
     TriangleSwapchain triangleSwapchain{triangleDevice};
+    TriangleUI triangleUI{triangleDevice, triangleWindow, triangleSwapchain};
 
     vk::PipelineLayout pipelineLayout;
     std::unique_ptr<TrianglePipeline> trianglePipeline;

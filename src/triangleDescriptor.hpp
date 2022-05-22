@@ -15,6 +15,9 @@ public:
     vk::DescriptorSet getDescriptorSet(uint32_t index) { return descriptorSets[index]; };
     vk::DescriptorSetLayout getDescriptorSetLayout() { return descriptorSetLayout; };
 
+    void createDescriptorPool();
+    void createDescriptorSetLayout();
+    void createDescriptorSets(const std::vector<vk::Buffer>& buffers);
 private:
     TriangleDevice& device;
 
@@ -26,7 +29,4 @@ private:
     vk::DescriptorSetLayout descriptorSetLayout;
     vk::DescriptorSetLayoutBinding descSetLayoutBinding;
 
-    void createDescriptorPool();
-    void createDescriptorSetLayout();
-    void createDescriptorSets(const std::vector<vk::Buffer>& buffers);
 };

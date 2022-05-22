@@ -3,6 +3,7 @@
 #include "triangleWindow.hpp"
 #include "vulkan/vulkan_core.h"
 #include "vulkan/vulkan_enums.hpp"
+#include "vulkan/vulkan_handles.hpp"
 #include "vulkan/vulkan_structs.hpp"
 #include <algorithm>
 #include <cstdint>
@@ -18,6 +19,7 @@ TriangleSwapchain::TriangleSwapchain(TriangleDevice& device) : device{device}
     createSwapchain();
     createImageViews();
     createRenderPass();
+    createUIRenderPass();
     createDepthResources();
     createFrameBuffers();
     createSyncObject();
@@ -41,7 +43,7 @@ TriangleSwapchain::~TriangleSwapchain()
         device.getLogicalDevice().destroyFramebuffer(framebuffer);
 
     std::cout << "Destroying render pass...\n";
-    device.getLogicalDevice().destroyRenderPass(renderPass);
+    device.getLogicalDevice().destroyRenderPass(mainRenderPass);
 
     std::cout << "Destroying image views...\n";
     for (auto& imageView : imageViews)
@@ -267,7 +269,50 @@ void TriangleSwapchain::createRenderPass()
     );
 
     vk::RenderPassCreateInfo renderPassCreateInfo(vk::RenderPassCreateFlags(), attachmentDescriptions, subpass, subpassDependency);
-    renderPass = device.getLogicalDevice().createRenderPass(renderPassCreateInfo);
+    mainRenderPass = device.getLogicalDevice().createRenderPass(renderPassCreateInfo);
+}
+
+void TriangleSwapchain::createUIRenderPass()
+{
+    std::array<vk::AttachmentDescription, 1> attachmentDescriptions;
+    attachmentDescriptions[0] = vk::AttachmentDescription(
+        vk::AttachmentDescriptionFlags(),
+        format.format,
+        vk::SampleCountFlagBits::e1,
+        vk::AttachmentLoadOp::eLoad,
+        vk::AttachmentStoreOp::eStore,
+        vk::AttachmentLoadOp::eDontCare,
+        vk::AttachmentStoreOp::eDontCare,
+        vk::ImageLayout::eAttachmentOptimal,
+        vk::ImageLayout::ePresentSrcKHR
+    );
+
+    vk::AttachmentReference colorReference(0, vk::ImageLayout::eColorAttachmentOptimal);
+
+    vk::SubpassDescription subpass(
+        vk::SubpassDescriptionFlags(),
+        vk::PipelineBindPoint::eGraphics,
+        nullptr,
+        colorReference
+    );
+
+    vk::SubpassDependency dependency(
+        VK_SUBPASS_EXTERNAL,
+        0,
+        vk::PipelineStageFlagBits::eColorAttachmentOutput,
+        vk::PipelineStageFlagBits::eColorAttachmentOutput,
+        vk::AccessFlagBits::eColorAttachmentWrite,
+        vk::AccessFlagBits::eColorAttachmentWrite
+    );
+
+    vk::RenderPassCreateInfo renderPassCreateInfo(
+        vk::RenderPassCreateFlags(),
+        attachmentDescriptions,
+        subpass,
+        dependency
+    );
+
+    uiRenderPass = device.getLogicalDevice().createRenderPass(renderPassCreateInfo);
 }
 
 void TriangleSwapchain::createFrameBuffers()
@@ -276,7 +321,7 @@ void TriangleSwapchain::createFrameBuffers()
 
     vk::FramebufferCreateInfo framebufferCreateInfo(
         vk::FramebufferCreateFlags(), 
-        renderPass, 
+        mainRenderPass, 
         attachments, 
         swapchainExtent.width, 
         swapchainExtent.height, 

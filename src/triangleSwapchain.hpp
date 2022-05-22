@@ -20,7 +20,8 @@ public:
 
     vk::Extent2D getExtent() { return swapchainExtent; };
     vk::SurfaceFormatKHR getFormat() { return format; };
-    vk::RenderPass getRenderPass() { return renderPass; };
+    vk::RenderPass getMainRenderPass() { return mainRenderPass; };
+    vk::RenderPass getUIRenderPass() { return uiRenderPass; };
     std::vector<vk::Framebuffer> getFramebuffers() { return framebuffers; };
     vk::SwapchainKHR getSwapchain() { return swapchain; };
 
@@ -55,7 +56,7 @@ private:
     vk::DeviceMemory depthImageMemory;
     vk::ImageView depthImageView;
 
-    vk::RenderPass renderPass;
+    vk::RenderPass mainRenderPass, uiRenderPass;
     std::vector<vk::Semaphore> imageAvailableSemaphore, renderFinishedSemaphore;
     std::vector<vk::Fence> inFlightFences;
 
@@ -65,6 +66,7 @@ private:
     void createImageViews();
     void createDepthResources();
     void createRenderPass();
+    void createUIRenderPass();
     void createFrameBuffers();
     void createSyncObject();
 

@@ -1,5 +1,6 @@
 #include "triangleDevice.hpp"
 #include "triangleWindow.hpp"
+#include <array>
 #include <cstddef>
 #include <cstdint>
 #include <sstream>
@@ -136,28 +137,26 @@ void TriangleDevice::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usag
     device.bindBufferMemory(buffer, bufferMemory, 0);
 }
 
-
-void TriangleDevice::copyBuffer(vk::Buffer& srcBuffer, vk::Buffer& dstBuffer, vk::DeviceSize size)
+void TriangleDevice::beginSingleTimeCommands(vk::CommandBuffer& cmdBuffer)
 {
-    std::vector<vk::CommandBuffer> cmdBuffer;
-    cmdBuffer.reserve(1);
-
     vk::CommandBufferAllocateInfo allocInfo(
         commandPool,
         vk::CommandBufferLevel::ePrimary,
         1
     );
 
-    cmdBuffer = device.allocateCommandBuffers(allocInfo);
+    cmdBuffer = device.allocateCommandBuffers(allocInfo).front();
 
     vk::CommandBufferBeginInfo beginInfo(
         vk::CommandBufferUsageFlagBits::eOneTimeSubmit
     );
 
-    cmdBuffer[0].begin(beginInfo);
-        vk::BufferCopy copyRegion({}, {}, size);
-        cmdBuffer[0].copyBuffer(srcBuffer, dstBuffer, copyRegion);
-    cmdBuffer[0].end();
+    cmdBuffer.begin(beginInfo);
+}
+
+void TriangleDevice::endSingleTimeCommand(vk::CommandBuffer& cmdBuffer)
+{
+    cmdBuffer.end();
 
     vk::SubmitInfo submitInfo(
         nullptr, nullptr, cmdBuffer, nullptr
@@ -167,6 +166,17 @@ void TriangleDevice::copyBuffer(vk::Buffer& srcBuffer, vk::Buffer& dstBuffer, vk
     graphicsQueue.waitIdle();
 
     device.freeCommandBuffers(commandPool, cmdBuffer);
+}
+
+void TriangleDevice::copyBuffer(vk::Buffer& srcBuffer, vk::Buffer& dstBuffer, vk::DeviceSize size)
+{
+    std::array<vk::CommandBuffer, 1> commandBuffer;
+    beginSingleTimeCommands(commandBuffer[0]);
+   
+    vk::BufferCopy copyRegion({}, {}, size);
+    commandBuffer[0].copyBuffer(srcBuffer, dstBuffer, copyRegion);
+
+    endSingleTimeCommand(commandBuffer[0]);
 }
 
 void TriangleDevice::allocateAndBindImage(vk::DeviceMemory &imageMemory, vk::Image &image, vk::MemoryPropertyFlags properties)

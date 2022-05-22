@@ -2,11 +2,7 @@
 
 #include "triangleWindow.hpp"
 #include <vector>
-#include <vulkan/vk_platform.h>
-#include <vulkan/vulkan_core.h>
 #include <vulkan/vulkan.hpp>
-#include <vulkan/vulkan_enums.hpp>
-#include <vulkan/vulkan_structs.hpp>
 
 
 class TriangleDevice
@@ -20,8 +16,15 @@ public:
     vk::SurfaceKHR getSurface() { return surface; };
     auto getQueueFamilyIndex() { return queueFamilyIndex; };
     vk::CommandPool getCommandPool() { return commandPool; };
+
     vk::Queue getGraphicsQueue() { return graphicsQueue; };
     vk::Queue getPresentQueue() { return presentQueue; };
+
+    vk::Instance getInstance() { return instance; };
+
+    void beginSingleTimeCommands(vk::CommandBuffer& cmdBuffer);
+    void endSingleTimeCommand(vk::CommandBuffer& cmdBuffer);
+
     void copyBuffer(vk::Buffer& srcBuffer, vk::Buffer& dstBuffer, vk::DeviceSize size);
     void createBuffer(  vk::DeviceSize size, 
                         vk::BufferUsageFlags usage, 

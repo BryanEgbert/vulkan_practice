@@ -1,9 +1,13 @@
 #include "triangleEngine.hpp"
+#include <imgui-1.87/backends/imgui_impl_glfw.h>
+#include <imgui-1.87/backends/imgui_impl_vulkan.h>
+#include <imgui-1.87/imgui.h>
 #include "triangleCamera.hpp"
 #include "triangleDevice.hpp"
 #include "triangleModel.hpp"
 #include "trianglePipeline.hpp"
 #include "triangleSwapchain.hpp"
+#include "vulkan/vulkan_enums.hpp"
 
 #include <GLFW/glfw3.h>
 #include <glm/fwd.hpp>
@@ -35,8 +39,8 @@ TriangleEngine::TriangleEngine()
     triangleModel = std::make_unique<TriangleModel>(triangleDevice, cubeVertices, cubeIndices);
     triangleModel->createUniformBuffers(triangleSwapchain.MAX_FRAMES_IN_FLIGHT);
 
-    triangleDescriptor = std::make_unique<TriangleDescriptor>(triangleDevice, triangleSwapchain.MAX_FRAMES_IN_FLIGHT, triangleModel->getUniformBuffers());
-    
+    triangleDescriptor = std::make_unique<TriangleDescriptor>(triangleDevice, triangleSwapchain.MAX_FRAMES_IN_FLIGHT, triangleModel->getUniformBuffers());   
+
     createPipelineLayout();
     createPipeline();
 
@@ -56,7 +60,13 @@ void TriangleEngine::run()
     while(!triangleWindow.shouldClose())
     {
         glfwPollEvents();
-        
+
+        triangleUI.initUI();
+
+        ImGui_ImplVulkan_NewFrame();
+        ImGui_ImplGlfw_NewFrame();
+        ImGui::NewFrame();
+        ImGui::ShowDemoWindow();
         triangleCamera->processCameraMovement();
         triangleCamera->processCameraRotation(0.2f);
 
@@ -153,7 +163,7 @@ void TriangleEngine::createPipeline()
         ),
         std::nullopt,
         pipelineLayout,
-        triangleSwapchain.getRenderPass()
+        triangleSwapchain.getMainRenderPass()
     };
 
     trianglePipeline = std::make_unique<TrianglePipeline>(triangleDevice, pipelineConfig, "shaders/vert.spv", "shaders/frag.spv");
@@ -203,6 +213,8 @@ void TriangleEngine::recordCommandBuffer(vk::CommandBuffer& cmdBuffer, uint32_t 
 {
     frame = (frame + 1) % 100;
 
+    ImGui::Render();
+
     vk::CommandBufferBeginInfo cmdBufferBeginInfo(vk::CommandBufferUsageFlags(), nullptr);
     cmdBuffer.begin(cmdBufferBeginInfo);
 
@@ -211,7 +223,7 @@ void TriangleEngine::recordCommandBuffer(vk::CommandBuffer& cmdBuffer, uint32_t 
     clearValues[1].setDepthStencil({1.0f, 0});
 
     vk::RenderPassBeginInfo renderPassBeginInfo(
-        triangleSwapchain.getRenderPass(),
+        triangleSwapchain.getMainRenderPass(),
         triangleSwapchain.getFramebuffers()[imageIndex],
         {{0, 0}, triangleSwapchain.getExtent()},
         clearValues);
@@ -234,6 +246,8 @@ void TriangleEngine::recordCommandBuffer(vk::CommandBuffer& cmdBuffer, uint32_t 
 
     cmdBuffer.drawIndexed(static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
 
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
+
     cmdBuffer.endRenderPass();
 
     cmdBuffer.end();
@@ -242,6 +256,7 @@ void TriangleEngine::recordCommandBuffer(vk::CommandBuffer& cmdBuffer, uint32_t 
 void TriangleEngine::drawFrames(uint32_t& currentFrame)
 {
     uint32_t imageIndex;
+    
     triangleSwapchain.acquireNextImage(&imageIndex, currentFrame);
 
     commandBuffers[currentFrame].reset();
