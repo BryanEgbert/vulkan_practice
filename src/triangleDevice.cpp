@@ -25,7 +25,7 @@ TriangleDevice::TriangleDevice(const char* appName, TriangleWindow& window)
 TriangleDevice::~TriangleDevice()
 {
     std::cout << "deleting command pool...\n";
-    device.destroyCommandPool(commandPool);
+    device.destroyCommandPool(mainCommandPool);
 
     std::cout << "deleting device...\n";
     device.destroy();
@@ -140,7 +140,7 @@ void TriangleDevice::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usag
 void TriangleDevice::beginSingleTimeCommands(vk::CommandBuffer& cmdBuffer)
 {
     vk::CommandBufferAllocateInfo allocInfo(
-        commandPool,
+        mainCommandPool,
         vk::CommandBufferLevel::ePrimary,
         1
     );
@@ -165,7 +165,7 @@ void TriangleDevice::endSingleTimeCommand(vk::CommandBuffer& cmdBuffer)
     graphicsQueue.submit(submitInfo);
     graphicsQueue.waitIdle();
 
-    device.freeCommandBuffers(commandPool, cmdBuffer);
+    device.freeCommandBuffers(mainCommandPool, cmdBuffer);
 }
 
 void TriangleDevice::copyBuffer(vk::Buffer& srcBuffer, vk::Buffer& dstBuffer, vk::DeviceSize size)
@@ -288,7 +288,7 @@ void TriangleDevice::createDevice()
 void TriangleDevice::createCommandPool()
 {
     vk::CommandPoolCreateInfo commandPoolCreateInfo(vk::CommandPoolCreateFlagBits::eResetCommandBuffer, queueFamilyIndex.graphics);
-    commandPool = device.createCommandPool(commandPoolCreateInfo);
+    mainCommandPool = device.createCommandPool(commandPoolCreateInfo);
 }
 
 void TriangleDevice::createDebugMessenger(vk::DebugUtilsMessengerCreateInfoEXT& debugMessengerCreateInfo)

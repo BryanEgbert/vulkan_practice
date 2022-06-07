@@ -15,7 +15,7 @@ public:
     vk::Device getLogicalDevice() { return device; };
     vk::SurfaceKHR getSurface() { return surface; };
     auto getQueueFamilyIndex() { return queueFamilyIndex; };
-    vk::CommandPool getCommandPool() { return commandPool; };
+    vk::CommandPool getCommandPool() { return mainCommandPool; };
 
     vk::Queue getGraphicsQueue() { return graphicsQueue; };
     vk::Queue getPresentQueue() { return presentQueue; };
@@ -52,7 +52,7 @@ private:
     vk::Device device;
     vk::Queue graphicsQueue;
     vk::Queue presentQueue;
-    vk::CommandPool commandPool;
+    vk::CommandPool mainCommandPool;
 
     vk::PhysicalDeviceMemoryProperties memProperties;
     vk::MemoryRequirements memRequirements;

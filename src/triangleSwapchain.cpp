@@ -1,4 +1,5 @@
 #include "triangleSwapchain.hpp"
+#include <imgui/imgui_impl_vulkan.h>
 #include "triangleDevice.hpp"
 #include "triangleWindow.hpp"
 #include "vulkan/vulkan_core.h"
@@ -39,11 +40,15 @@ TriangleSwapchain::~TriangleSwapchain()
 
 
     std::cout << "Destroying framebuffers...\n";
-    for (const auto& framebuffer : framebuffers)
-        device.getLogicalDevice().destroyFramebuffer(framebuffer);
-
+    for (int i = 0; i < imageViews.size(); ++i)
+    {
+        device.getLogicalDevice().destroyFramebuffer(mainFrameBuffers[i]);
+        device.getLogicalDevice().destroyFramebuffer(uiFrameBuffers[i]);
+    }
+    
     std::cout << "Destroying render pass...\n";
     device.getLogicalDevice().destroyRenderPass(mainRenderPass);
+    device.getLogicalDevice().destroyRenderPass(uiRenderPass);
 
     std::cout << "Destroying image views...\n";
     for (auto& imageView : imageViews)
@@ -200,6 +205,7 @@ void TriangleSwapchain::createImageViews()
     std::vector<vk::Image> swapchainImages = device.getLogicalDevice().getSwapchainImagesKHR(swapchain);
 
     imageViews.reserve(swapchainImages.size());
+    std::cout << "Swapchain image size: " << swapchainImages.size() << '\n';
     vk::ImageViewCreateInfo imageViewCreateInfo(
         {}, 
         {}, 
@@ -235,7 +241,7 @@ void TriangleSwapchain::createRenderPass()
                                                             vk::AttachmentLoadOp::eDontCare,
                                                             vk::AttachmentStoreOp::eDontCare,
                                                             vk::ImageLayout::eUndefined, 
-                                                            vk::ImageLayout::ePresentSrcKHR);
+                                                            vk::ImageLayout::eColorAttachmentOptimal);
 
     attachmentDescriptions[1] = vk::AttachmentDescription(  vk::AttachmentDescriptionFlags(), 
                                                             findDepthFormat(), 
@@ -283,7 +289,7 @@ void TriangleSwapchain::createUIRenderPass()
         vk::AttachmentStoreOp::eStore,
         vk::AttachmentLoadOp::eDontCare,
         vk::AttachmentStoreOp::eDontCare,
-        vk::ImageLayout::eAttachmentOptimal,
+        vk::ImageLayout::eColorAttachmentOptimal,
         vk::ImageLayout::ePresentSrcKHR
     );
 
@@ -301,7 +307,7 @@ void TriangleSwapchain::createUIRenderPass()
         0,
         vk::PipelineStageFlagBits::eColorAttachmentOutput,
         vk::PipelineStageFlagBits::eColorAttachmentOutput,
-        vk::AccessFlagBits::eColorAttachmentWrite,
+        vk::AccessFlagBits::eNone,
         vk::AccessFlagBits::eColorAttachmentWrite
     );
 
@@ -317,22 +323,32 @@ void TriangleSwapchain::createUIRenderPass()
 
 void TriangleSwapchain::createFrameBuffers()
 {
-    std::array<vk::ImageView, 2> attachments;
+    std::array<vk::ImageView, 2> renderAttachments;
+    std::array<vk::ImageView, 1> uiAttachment;
 
     vk::FramebufferCreateInfo framebufferCreateInfo(
         vk::FramebufferCreateFlags(), 
-        mainRenderPass, 
-        attachments, 
+        nullptr, 
+        nullptr, 
         swapchainExtent.width, 
         swapchainExtent.height, 
         1);
     
-    framebuffers.reserve(imageViews.size());
+    mainFrameBuffers.reserve(imageViews.size());
+    uiFrameBuffers.reserve(imageViews.size());
+
     for (const auto& imageView : imageViews)
     {
-        attachments[0] = imageView;
-        attachments[1] = depthImageView;
-        framebuffers.push_back(device.getLogicalDevice().createFramebuffer(framebufferCreateInfo));
+        renderAttachments[0] = uiAttachment[0] = imageView;
+        renderAttachments[1] = depthImageView;
+
+        framebufferCreateInfo.setAttachments(renderAttachments);
+        framebufferCreateInfo.setRenderPass(mainRenderPass);
+        mainFrameBuffers.push_back(device.getLogicalDevice().createFramebuffer(framebufferCreateInfo));
+
+        framebufferCreateInfo.setAttachments(uiAttachment);
+        framebufferCreateInfo.setRenderPass(uiRenderPass);
+        uiFrameBuffers.push_back(device.getLogicalDevice().createFramebuffer(framebufferCreateInfo));
     }
 }
 

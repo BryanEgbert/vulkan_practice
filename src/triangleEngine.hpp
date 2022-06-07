@@ -8,18 +8,17 @@
 #include "triangleSwapchain.hpp"
 #include "triangleUI.hpp"
 #include "triangleWindow.hpp"
-#include "vulkan/vulkan_handles.hpp"
 #include "triangleDescriptor.hpp"
 
 #include <memory>
 #include <vector>
 
 
-class TriangleEngine 
+class TriangleEngine
 {
 public:    
-    static constexpr int WIDTH = 800;
-    static constexpr int HEIGHT = 600;
+    static constexpr int WIDTH = 1920;
+    static constexpr int HEIGHT = 1200;
 
     TriangleEngine();
     ~TriangleEngine();
@@ -93,10 +92,11 @@ private:
 
     glm::vec3 cameraPos = glm::vec3(2.0f, 2.0f, 2.0f);
 
+    void newFrame();
     void createPipelineLayout();
     void createPipeline();
     void createCommandBuffer();
     void updateUniformBuffer(uint32_t currentImage);
     void recordCommandBuffer(vk::CommandBuffer& cmdBuffer, uint32_t imageIndex, uint32_t& currentFrame);
-    void drawFrames(uint32_t& currentFrame);
+    void drawFrames(uint32_t& imageIndex, uint32_t& currentFrame);
 };

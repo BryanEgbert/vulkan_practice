@@ -1,12 +1,13 @@
 #include "triangleEngine.hpp"
-#include <imgui-1.87/backends/imgui_impl_glfw.h>
-#include <imgui-1.87/backends/imgui_impl_vulkan.h>
-#include <imgui-1.87/imgui.h>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_vulkan.h>
+#include <imgui/imgui.h>
 #include "triangleCamera.hpp"
 #include "triangleDevice.hpp"
 #include "triangleModel.hpp"
 #include "trianglePipeline.hpp"
 #include "triangleSwapchain.hpp"
+#include "triangleUI.hpp"
 #include "vulkan/vulkan_enums.hpp"
 
 #include <GLFW/glfw3.h>
@@ -34,7 +35,6 @@ static uint32_t frame = 0;
 TriangleEngine::TriangleEngine()
 {
     
-    // triangleModel = std::make_unique<TriangleModel>(triangleDevice, vertices, indices);
     triangleCamera = std::make_unique<TriangleCamera>(triangleWindow.getWindow(), WIDTH, HEIGHT);
     triangleModel = std::make_unique<TriangleModel>(triangleDevice, cubeVertices, cubeIndices);
     triangleModel->createUniformBuffers(triangleSwapchain.MAX_FRAMES_IN_FLIGHT);
@@ -53,24 +53,45 @@ TriangleEngine::~TriangleEngine()
     triangleDevice.getLogicalDevice().destroyPipelineLayout(pipelineLayout);
 }
 
+void TriangleUI::beginUIFrame()
+{
+    float velocity = 0.25f;
+    // ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
+    if (ImGui::Begin("Test"))
+    {
+        ImGui::SliderFloat("Position", &velocity, 0.1f, 1.0f);
+        ImGui::End();
+    }
+
+    if (ImGui::Begin("Scene"))
+    {
+        // ImGui::Image(ImTextureID user_texture_id, const ImVec2 &size)
+        ImGui::End();
+    }
+
+    ImGui::ShowDemoWindow();
+
+}
+
 void TriangleEngine::run()
 {
-    uint32_t currentFrame = 0;
+    uint32_t currentFrame = 0, imageIndex;
     triangleCamera->setCamera(glm::vec3(0.f, 0.f, 2.f), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f));
     while(!triangleWindow.shouldClose())
     {
+        triangleSwapchain.acquireNextImage(&imageIndex, currentFrame);
+
         glfwPollEvents();
-
-        triangleUI.initUI();
-
-        ImGui_ImplVulkan_NewFrame();
-        ImGui_ImplGlfw_NewFrame();
-        ImGui::NewFrame();
-        ImGui::ShowDemoWindow();
+        
         triangleCamera->processCameraMovement();
         triangleCamera->processCameraRotation(0.2f);
 
-        drawFrames(currentFrame);
+        triangleUI.draw();
+
+        triangleUI.renderFrame(imageIndex, currentFrame);
+        drawFrames(imageIndex, currentFrame);
+
+        currentFrame = (currentFrame + 1) % triangleSwapchain.MAX_FRAMES_IN_FLIGHT;
     }
 
     triangleDevice.getLogicalDevice().waitIdle();
@@ -213,8 +234,6 @@ void TriangleEngine::recordCommandBuffer(vk::CommandBuffer& cmdBuffer, uint32_t 
 {
     frame = (frame + 1) % 100;
 
-    ImGui::Render();
-
     vk::CommandBufferBeginInfo cmdBufferBeginInfo(vk::CommandBufferUsageFlags(), nullptr);
     cmdBuffer.begin(cmdBufferBeginInfo);
 
@@ -224,7 +243,7 @@ void TriangleEngine::recordCommandBuffer(vk::CommandBuffer& cmdBuffer, uint32_t 
 
     vk::RenderPassBeginInfo renderPassBeginInfo(
         triangleSwapchain.getMainRenderPass(),
-        triangleSwapchain.getFramebuffers()[imageIndex],
+        triangleSwapchain.getMainFramebuffers()[imageIndex],
         {{0, 0}, triangleSwapchain.getExtent()},
         clearValues);
 
@@ -239,26 +258,18 @@ void TriangleEngine::recordCommandBuffer(vk::CommandBuffer& cmdBuffer, uint32_t 
     TriangleModel::MeshPushConstant push{};
     push.offset = {0.0f, 0.0f, 0.0f};
     push.color = {0.0f, 0.0f + (frame * 0.005f), 0.0f + (frame * 0.0025f)};
-    // push.offset = {0.0f + (frame * 0.01f), 0.0f + (frame * 0.01f), 0.0f + (frame * 0.01f)};
-    // push.color = {0.0f, 0.0f, 0.0f};
 
     cmdBuffer.pushConstants<TriangleModel::MeshPushConstant>(pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, push);        
 
     cmdBuffer.drawIndexed(static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
-
-    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), cmdBuffer);
 
     cmdBuffer.endRenderPass();
 
     cmdBuffer.end();
 }
 
-void TriangleEngine::drawFrames(uint32_t& currentFrame)
+void TriangleEngine::drawFrames(uint32_t& imageIndex, uint32_t& currentFrame)
 {
-    uint32_t imageIndex;
-    
-    triangleSwapchain.acquireNextImage(&imageIndex, currentFrame);
-
     commandBuffers[currentFrame].reset();
     recordCommandBuffer(commandBuffers[currentFrame], imageIndex, currentFrame);
 
@@ -267,7 +278,7 @@ void TriangleEngine::drawFrames(uint32_t& currentFrame)
     std::array<vk::Semaphore, 1> waitSemaphore = {triangleSwapchain.getPresentSemaphore(currentFrame)};
     std::array<vk::Semaphore, 1> signalSemaphore = {triangleSwapchain.getRenderSemaphore(currentFrame)};
 
-    std::array<vk::CommandBuffer, 1> currentCommandBuffer = {commandBuffers[currentFrame]};
+    std::array<vk::CommandBuffer, 2> currentCommandBuffer = {commandBuffers[currentFrame], triangleUI.getCommandBuffers(currentFrame)};
 
     updateUniformBuffer(currentFrame);
 
@@ -282,6 +293,4 @@ void TriangleEngine::drawFrames(uint32_t& currentFrame)
 
     if (triangleDevice.getPresentQueue().presentKHR(presentInfo) != vk::Result::eSuccess)
         throw std::runtime_error("Something's wrong when presenting");
-
-    currentFrame = (currentFrame + 1) % triangleSwapchain.MAX_FRAMES_IN_FLIGHT;
 }

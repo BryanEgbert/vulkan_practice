@@ -22,7 +22,8 @@ public:
     vk::SurfaceFormatKHR getFormat() { return format; };
     vk::RenderPass getMainRenderPass() { return mainRenderPass; };
     vk::RenderPass getUIRenderPass() { return uiRenderPass; };
-    std::vector<vk::Framebuffer> getFramebuffers() { return framebuffers; };
+    std::vector<vk::Framebuffer> getMainFramebuffers() { return mainFrameBuffers; };
+    std::vector<vk::Framebuffer> getUIFramebuffers() { return uiFrameBuffers; };
     vk::SwapchainKHR getSwapchain() { return swapchain; };
 
     vk::Result acquireNextImage(uint32_t* imageIndex, uint32_t& currentFrame);
@@ -30,6 +31,7 @@ public:
 
     vk::Semaphore getRenderSemaphore(int index) { return renderFinishedSemaphore[index]; };
     vk::Semaphore getPresentSemaphore(int index) { return imageAvailableSemaphore[index]; };
+    uint32_t getMinImageCount() { return swapChainSupportDetails.capabilities.minImageCount + 1; };
 
 private:
     TriangleDevice& device;
@@ -48,7 +50,7 @@ private:
 
     vk::SwapchainKHR swapchain;
     std::vector<vk::ImageView> imageViews;
-    std::vector<vk::Framebuffer> framebuffers;
+    std::vector<vk::Framebuffer> mainFrameBuffers, uiFrameBuffers;
 
     vk::MemoryRequirements memRequirements;
 

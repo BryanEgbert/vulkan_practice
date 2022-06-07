@@ -15,15 +15,14 @@ void TriangleWindow::initWindow()
     glfwInit();
 
     int count;
-    GLFWmonitor** monitos = glfwGetMonitors(&count);
+    GLFWmonitor** monitors = glfwGetMonitors(&count);
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    // glfwSetCursorPosCallback(window, this->mouseCallback);
-    window = glfwCreateWindow(width, height, windowName, nullptr, nullptr);
+    window = glfwCreateWindow(width, height, windowName, monitors[1], nullptr);
     
-    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 }
 
 TriangleWindow::~TriangleWindow()

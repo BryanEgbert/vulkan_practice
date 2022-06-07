@@ -1,7 +1,7 @@
 #include "triangleUI.hpp"
-#include "backends/imgui_impl_glfw.h"
-#include "backends/imgui_impl_vulkan.h"
-#include "imgui.h"
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_vulkan.h>
+#include <imgui/imgui.h>
 #include "triangleDevice.hpp"
 #include "triangleSwapchain.hpp"
 #include "vulkan/vulkan_core.h"
@@ -17,21 +17,36 @@ TriangleUI::TriangleUI(TriangleDevice& device, TriangleWindow& window, TriangleS
 
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImGuiIO& io = ImGui::GetIO();
+    io.ConfigWindowsMoveFromTitleBarOnly = true;
+    io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;
+
+    ImGui::StyleColorsDark();
+
     createUIDescriptorPool();
+    createUICommandBuffer();
 }
 
 TriangleUI::~TriangleUI()
 {
     device.getLogicalDevice().destroyDescriptorPool(imguiPool);
+
+    ImGui_ImplVulkan_Shutdown();
+    ImGui_ImplGlfw_Shutdown();
+    ImGui::DestroyContext();
 }
 
-void TriangleUI::initUI()
+void TriangleUI::createUICommandBuffer()
 {
-    ImGuiIO& io = ImGui::GetIO();
-    (void)io;
+    uiCommandBuffers.resize(swapchain.MAX_FRAMES_IN_FLIGHT);
 
-    ImGui::StyleColorsDark();
+    vk::CommandBufferAllocateInfo allocInfo(
+        device.getCommandPool(),
+        vk::CommandBufferLevel::ePrimary,
+        uiCommandBuffers.size()
+    );
 
+    uiCommandBuffers = device.getLogicalDevice().allocateCommandBuffers(allocInfo);
 }
 
 void TriangleUI::createUIDescriptorPool()
@@ -68,15 +83,55 @@ void TriangleUI::createUIDescriptorPool()
     initInfo.Device = static_cast<VkDevice>(device.getLogicalDevice());
     initInfo.Queue = static_cast<VkQueue>(device.getGraphicsQueue());
     initInfo.DescriptorPool = static_cast<VkDescriptorPool>(imguiPool);
-    initInfo.MinImageCount = 3;
-    initInfo.ImageCount = 3;
+    initInfo.MinImageCount = swapchain.getMinImageCount();
+    initInfo.ImageCount = swapchain.getMinImageCount();
     initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-    ImGui_ImplVulkan_Init(&initInfo, swapchain.getMainRenderPass());
+    ImGui_ImplVulkan_Init(&initInfo, swapchain.getUIRenderPass());
 
-    device.beginSingleTimeCommands(uiCommandBuffer);
-    ImGui_ImplVulkan_CreateFontsTexture(uiCommandBuffer);
-    device.endSingleTimeCommand(uiCommandBuffer);
+    std::array<vk::CommandBuffer, 1> tempCommandBuffer;
 
-    ImGui_ImplVulkan_DestroyFontUploadObjects();
+    for (auto& commandBuffer : tempCommandBuffer)
+    {
+        device.beginSingleTimeCommands(commandBuffer);
+        ImGui_ImplVulkan_CreateFontsTexture(static_cast<VkCommandBuffer>(commandBuffer));
+        device.endSingleTimeCommand(commandBuffer);
+
+        ImGui_ImplVulkan_DestroyFontUploadObjects();
+    }
+
+}
+
+void TriangleUI::draw()
+{
+    ImGui_ImplVulkan_NewFrame();
+    ImGui_ImplGlfw_NewFrame();
+    ImGui::NewFrame();
+    beginUIFrame();
+}
+
+void TriangleUI::renderFrame(uint32_t& imageIndex, uint32_t& currentFrame)
+{   
+    ImGui::Render();
+    uiCommandBuffers[currentFrame].reset();
+    // No need to reset command pool because the ui command buffer is using the same command pool
+    vk::CommandBufferBeginInfo beginInfo(vk::CommandBufferUsageFlagBits::eOneTimeSubmit);
+
+    uiCommandBuffers[currentFrame].begin(beginInfo);
+
+    std::array<vk::ClearValue, 1> clearValues;
+    clearValues[0].setColor(vk::ClearColorValue(std::array<float, 4>({{0.0f, 0.0f, 0.0f, 1.0f}})));
+
+    vk::RenderPassBeginInfo renderPassBeginInfo(
+        swapchain.getUIRenderPass(), 
+        swapchain.getUIFramebuffers()[imageIndex], 
+        {{0, 0}, swapchain.getExtent()}, 
+        clearValues);
+
+    uiCommandBuffers[currentFrame].beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
+    
+    ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), uiCommandBuffers[currentFrame]);
+
+    uiCommandBuffers[currentFrame].endRenderPass();
+    uiCommandBuffers[currentFrame].end();
 }

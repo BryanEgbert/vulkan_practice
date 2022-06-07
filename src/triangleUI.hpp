@@ -11,14 +11,21 @@ class TriangleUI
 public:
     TriangleUI(TriangleDevice& device, TriangleWindow& window, TriangleSwapchain& swapchain);
     ~TriangleUI();
-    void initUI();
+
+    vk::CommandBuffer getCommandBuffers(int index) { return uiCommandBuffers[index]; };
+
+    void beginUIFrame();
+    void draw();
+    void renderFrame(uint32_t& imageIndex, uint32_t& currentFrame);
 private:
     TriangleDevice& device;
     TriangleWindow& window;
     TriangleSwapchain&  swapchain;
 
     vk::DescriptorPool imguiPool;
-    vk::CommandBuffer uiCommandBuffer;
+    
+    std::vector<vk::CommandBuffer> uiCommandBuffers;
     
     void createUIDescriptorPool();
+    void createUICommandBuffer();
 };

@@ -19,7 +19,7 @@ add_executable(vulkan_basic
 target_compile_features(${PROJECT_NAME} PUBLIC cxx_std_20)
 set_target_properties(${PROJECT_NAME} PROPERTIES CXX_STANDARD_REQUIRED ON)
 
-target_include_directories(${PROJECT_NAME} PUBLIC /usr/local/include/imgui-1.87/ /usr/local/include/imgui-1.87/backends/)
+target_include_directories(${PROJECT_NAME} PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/third_party/)
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${Vulkan_INCLUDE_DIR})
 
