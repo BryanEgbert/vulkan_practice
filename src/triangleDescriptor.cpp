@@ -67,7 +67,7 @@ void TriangleDescriptor::createDescriptorSets(const std::vector<vk::Buffer>& buf
     for (int i = 0; i < descriptorCount; ++i)
     {
         bufferInfos.push_back(vk::DescriptorBufferInfo(
-            buffers[i], 0, sizeof(TriangleModel::UniformBufferObject)
+            buffers[i], 0, sizeof(TriangleModel::MVP)
         ));
 
         descriptorWrites.push_back(

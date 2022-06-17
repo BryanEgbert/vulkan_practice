@@ -114,7 +114,7 @@ void TriangleModel::createUniformBuffers(const uint32_t bufferCount)
 {
     uniformBufferCount = bufferCount;
 
-    vk::DeviceSize bufferSize = sizeof(UniformBufferObject);
+    vk::DeviceSize bufferSize = sizeof(MVP);
 
     uniformBuffers.resize(bufferCount);
     uniformBufferMemories.resize(bufferCount);

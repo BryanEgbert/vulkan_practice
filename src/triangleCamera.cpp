@@ -14,9 +14,9 @@ TriangleCamera::TriangleCamera(GLFWwindow* window, const int windowWidth, const 
 
 void TriangleCamera::setCamera(glm::vec3 cameraPos, glm::vec3 cameraFront, glm::vec3 cameraUp)
 {
-    this->cameraPos = cameraPos;
-    this->cameraFront = cameraFront;
-    this->cameraUp = cameraUp;
+    CameraProperties.cameraPos = cameraPos;
+    CameraProperties.cameraFront = cameraFront;
+    CameraProperties.cameraUp = cameraUp;
 }
 
 void TriangleCamera::processCameraMovement()
@@ -28,13 +28,13 @@ void TriangleCamera::processCameraMovement()
     float camSpeed = 6.0f * deltaTime;
 
     if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-        cameraPos += camSpeed * cameraFront;
+        CameraProperties.cameraPos += camSpeed * CameraProperties.cameraFront;
     if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-        cameraPos -= camSpeed * cameraFront;
+        CameraProperties.cameraPos -= camSpeed * CameraProperties.cameraFront;
     if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-        cameraPos -= glm::normalize(glm::cross(cameraFront, cameraUp)) * camSpeed;
+        CameraProperties.cameraPos -= glm::normalize(glm::cross(CameraProperties.cameraFront, CameraProperties.cameraUp)) * camSpeed;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-        cameraPos += glm::normalize(glm::cross(cameraFront, cameraUp)) * camSpeed;
+        CameraProperties.cameraPos += glm::normalize(glm::cross(CameraProperties.cameraFront, CameraProperties.cameraUp)) * camSpeed;
 }
 
 void TriangleCamera::processCameraRotation(const float sensitivity)
@@ -68,6 +68,6 @@ void TriangleCamera::processCameraRotation(const float sensitivity)
     direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
     direction.y = sin(glm::radians(pitch));
     direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-    cameraFront = glm::normalize(direction);
+    CameraProperties.cameraFront = glm::normalize(direction);
 }
 

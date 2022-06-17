@@ -25,6 +25,12 @@ public:
 
     void run();
 private:
+    TriangleModel::MVP ubo{};
+
+    struct BoxPosition {
+        float x = 0.f, y = 0.f, z = 0.f;
+    } BoxPosition;
+
     std::vector<TriangleModel::Vertex> vertices = {
         {{-0.5f, -0.5f, 0.0f}, {0.5f, 0.0f, 0.0f}},
         {{0.5f, -0.5f, 0.0f}, {0.5f, 0.0f, 0.0f}},
@@ -90,9 +96,10 @@ private:
     std::unique_ptr<TriangleCamera> triangleCamera;
     std::vector<vk::CommandBuffer> commandBuffers;
 
-    glm::vec3 cameraPos = glm::vec3(2.0f, 2.0f, 2.0f);
+    glm::vec3 cameraPos = glm::vec3(0.f, 0.f, 2.f);
 
-    void newFrame();
+    // void newFrame();
+    void drawUI();
     void createPipelineLayout();
     void createPipeline();
     void createCommandBuffer();

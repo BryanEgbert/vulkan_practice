@@ -53,40 +53,59 @@ TriangleEngine::~TriangleEngine()
     triangleDevice.getLogicalDevice().destroyPipelineLayout(pipelineLayout);
 }
 
-void TriangleUI::beginUIFrame()
+void TriangleEngine::drawUI()
 {
     float velocity = 0.25f;
     // ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
     if (ImGui::Begin("Test"))
     {
-        ImGui::SliderFloat("Position", &velocity, 0.1f, 1.0f);
+        ImGui::BeginGroup();
+        ImGui::SliderFloat("pos x", &BoxPosition.x, 0.1f, 10.0f);
+        ImGui::SliderFloat("pos y", &BoxPosition.y, 0.1f, 10.0f);
+        ImGui::SliderFloat("pos z", &BoxPosition.z, 0.1f, 10.0f);
+        ImGui::EndGroup();
+
+        ImGui::BeginGroup();
+        auto cameraProperty = triangleCamera->getCameraProperty();
+        ImGui::Text("Cam pos: (%f, %f, %f)", cameraProperty.cameraPos.x, cameraProperty.cameraPos.y, cameraProperty.cameraPos.z);
+        ImGui::Text("Cam front: (%f, %f, %f)", cameraProperty.cameraFront.x, cameraProperty.cameraFront.y, cameraProperty.cameraFront.z);
+        ImGui::Text("Cam up: (%f, %f, %f)", cameraProperty.cameraUp.x, cameraProperty.cameraUp.y, cameraProperty.cameraUp.z);
+        ImGui::Text("Cam direction: (%f, %f, %f)", cameraProperty.direction.x, cameraProperty.direction.y, cameraProperty.direction.z);
+
+        ImGui::EndGroup();
+
         ImGui::End();
     }
 
     if (ImGui::Begin("Scene"))
     {
+        // ImGui::Text("Camera");
+
         // ImGui::Image(ImTextureID user_texture_id, const ImVec2 &size)
         ImGui::End();
     }
 
     ImGui::ShowDemoWindow();
-
 }
 
 void TriangleEngine::run()
 {
     uint32_t currentFrame = 0, imageIndex;
-    triangleCamera->setCamera(glm::vec3(0.f, 0.f, 2.f), glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f));
+    triangleCamera->setCamera(cameraPos, glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f));
+
     while(!triangleWindow.shouldClose())
     {
         triangleSwapchain.acquireNextImage(&imageIndex, currentFrame);
 
         glfwPollEvents();
         
-        triangleCamera->processCameraMovement();
-        triangleCamera->processCameraRotation(0.2f);
+        triangleUI.draw([this]{ drawUI(); });
 
-        triangleUI.draw();
+        triangleCamera->processCameraMovement();
+        if (triangleUI.isCapturingMouse() == false) 
+        {
+            triangleCamera->processCameraRotation(0.2f);
+        }
 
         triangleUI.renderFrame(imageIndex, currentFrame);
         drawFrames(imageIndex, currentFrame);
@@ -205,23 +224,18 @@ void TriangleEngine::createCommandBuffer()
 
 void TriangleEngine::updateUniformBuffer(uint32_t currentImage)
 {
-    static auto startTime = std::chrono::high_resolution_clock::now();
-
-    auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
-
-    TriangleModel::UniformBufferObject ubo{};
-    glm::mat4 transform = glm::translate(glm::mat4{1.0f}, {0.0f, 0.0f, 0.0f});
+    glm::mat4 transform = glm::translate(glm::mat4{1.0f}, {BoxPosition.x, BoxPosition.y, BoxPosition.z});
     // transform = transform * glm::eulerAngleXYZ(0.5f + time, 0.5f + time, 0.5f + time);
 
     // ubo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 1.0f, 1.0f));
     ubo.model = transform;
+    
     cameraPos.x = sin(glfwGetTime()) * 10.0f;
     cameraPos.z = cos(glfwGetTime()) * 10.0f;
     ubo.view = triangleCamera->getView();
     // ubo.view = glm::lookAt(glm::vec3(2.0f, 2.0f, 2.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-    ubo.proj = glm::perspective(glm::radians(45.0f), triangleSwapchain.getExtent().width / (float) triangleSwapchain.getExtent().height, 0.1f, 20.0f);
 
+    ubo.proj = glm::perspective(glm::radians(45.0f), triangleSwapchain.getExtent().width / (float) triangleSwapchain.getExtent().height, 0.1f, 20.0f);
     ubo.proj[1][1] *= -1;
 
     void* data;

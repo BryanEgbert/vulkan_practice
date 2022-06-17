@@ -102,12 +102,12 @@ void TriangleUI::createUIDescriptorPool()
 
 }
 
-void TriangleUI::draw()
+void TriangleUI::draw(std::function<void()> beginUI)
 {
     ImGui_ImplVulkan_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-    beginUIFrame();
+    beginUI();
 }
 
 void TriangleUI::renderFrame(uint32_t& imageIndex, uint32_t& currentFrame)
@@ -134,4 +134,10 @@ void TriangleUI::renderFrame(uint32_t& imageIndex, uint32_t& currentFrame)
 
     uiCommandBuffers[currentFrame].endRenderPass();
     uiCommandBuffers[currentFrame].end();
+}
+
+bool TriangleUI::isCapturingMouse()
+{
+    ImGuiIO& io = ImGui::GetIO();
+    return io.WantCaptureMouse; 
 }
