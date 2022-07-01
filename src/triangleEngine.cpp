@@ -1,7 +1,4 @@
 #include "triangleEngine.hpp"
-#include <imgui/imgui_impl_glfw.h>
-#include <imgui/imgui_impl_vulkan.h>
-#include <imgui/imgui.h>
 #include "triangleCamera.hpp"
 #include "triangleDevice.hpp"
 #include "triangleModel.hpp"
@@ -11,8 +8,11 @@
 #include "vulkan/vulkan_enums.hpp"
 
 #include <GLFW/glfw3.h>
-#include <glm/fwd.hpp>
+#include <imgui/imgui_impl_glfw.h>
+#include <imgui/imgui_impl_vulkan.h>
+#include <imgui/imgui.h>
 
+#include <glm/fwd.hpp>
 #define GLM_FORCE_RADIANS
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
@@ -38,6 +38,10 @@ TriangleEngine::TriangleEngine()
     triangleCamera = std::make_unique<TriangleCamera>(triangleWindow.getWindow(), WIDTH, HEIGHT);
     triangleModel = std::make_unique<TriangleModel>(triangleDevice, cubeVertices, cubeIndices);
     triangleModel->createUniformBuffers(triangleSwapchain.MAX_FRAMES_IN_FLIGHT);
+    
+    ecs = std::make_unique<triangle::ECS>();
+    triangle::Entity tempEntity = triangle::Entity();
+    ecs->addEntity(tempEntity);
 
     triangleDescriptor = std::make_unique<TriangleDescriptor>(triangleDevice, triangleSwapchain.MAX_FRAMES_IN_FLIGHT, triangleModel->getUniformBuffers());   
 

@@ -9,6 +9,7 @@
 #include "triangleUI.hpp"
 #include "triangleWindow.hpp"
 #include "triangleDescriptor.hpp"
+#include "triangleECS.hpp"
 
 #include <memory>
 #include <vector>
@@ -94,6 +95,7 @@ private:
     std::unique_ptr<TriangleModel> triangleModel;
     std::unique_ptr<TriangleDescriptor> triangleDescriptor;
     std::unique_ptr<TriangleCamera> triangleCamera;
+    std::unique_ptr<triangle::ECS> ecs;
     std::vector<vk::CommandBuffer> commandBuffers;
 
     glm::vec3 cameraPos = glm::vec3(0.f, 0.f, 2.f);
