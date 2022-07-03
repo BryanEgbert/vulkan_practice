@@ -12,25 +12,24 @@
 #include <cstddef>
 #include <vector>
 
-TriangleModel::TriangleModel(TriangleDevice& device, const std::vector<Vertex>& vertices, const std::vector<uint16_t>& indices) : device{device}
-{
-    createVertexBuffer(vertices);
-    createIndexBuffer(indices);
+TriangleModel::TriangleModel(TriangleDevice& device) : device{device} {
+    std::cout << "construct model\n";
+    m_RenderModels.reserve(100);
 }
 
 TriangleModel::~TriangleModel()
 {
-    device.getLogicalDevice().destroyBuffer(indexBuffer);
-    device.getLogicalDevice().freeMemory(indexBufferMemory);
+    // device.getLogicalDevice().destroyBuffer(indexBuffer);
+    // device.getLogicalDevice().freeMemory(indexBufferMemory);
 
-    device.getLogicalDevice().destroyBuffer(vertexBuffer);
-    device.getLogicalDevice().freeMemory(vertexBufferMemory);
+    // device.getLogicalDevice().destroyBuffer(vertexBuffer);
+    // device.getLogicalDevice().freeMemory(vertexBufferMemory);
 
-    for (int i = 0; i < uniformBufferCount; ++i)
-    {
-        device.getLogicalDevice().destroyBuffer(uniformBuffers[i]);
-        device.getLogicalDevice().freeMemory(uniformBufferMemories[i]);
-    }
+    // for (int i = 0; i < uniformBufferCount; ++i)
+    // {
+    //     device.getLogicalDevice().destroyBuffer(uniformBuffers[i]);
+    //     device.getLogicalDevice().freeMemory(uniformBufferMemories[i]);
+    // }
 }
 
 std::vector<vk::VertexInputBindingDescription> TriangleModel::Vertex::getBindingDesciptions()
@@ -67,10 +66,10 @@ std::vector<vk::VertexInputAttributeDescription> TriangleModel::Vertex::getAttri
     return attributeDescriptions;
 }
 
-void TriangleModel::createVertexBuffer(const std::vector<Vertex>& vertices)
+void TriangleModel::allocVertexBuffer(Mesh& mesh)
 {
     
-    vk::DeviceSize bufferSize = sizeof(vertices[0]) * vertices.size();
+    vk::DeviceSize bufferSize = sizeof(mesh.vertices[0]) * mesh.vertices.size();
 
     vk::Buffer stagingBuffer;
     vk::DeviceMemory stagingBufferMemory;
@@ -79,20 +78,20 @@ void TriangleModel::createVertexBuffer(const std::vector<Vertex>& vertices)
     device.createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, stagingBufferProperties, stagingBuffer, stagingBufferMemory);
 
     data = device.getLogicalDevice().mapMemory(stagingBufferMemory, 0, bufferSize);
-        memcpy(data, vertices.data(), (size_t)bufferSize);
+        memcpy(data, mesh.vertices.data(), (size_t)bufferSize);
     device.getLogicalDevice().unmapMemory(stagingBufferMemory);
 
-    device.createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, vertexBuffer, vertexBufferMemory);
+    device.createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, mesh.vertexBuffer, mesh.vertexBufferMemory);
 
-    device.copyBuffer(stagingBuffer, vertexBuffer, bufferSize);
+    device.copyBuffer(stagingBuffer, mesh.vertexBuffer, bufferSize);
 
     device.getLogicalDevice().destroyBuffer(stagingBuffer);
     device.getLogicalDevice().freeMemory(stagingBufferMemory);
 }
 
-void TriangleModel::createIndexBuffer(const std::vector<uint16_t> &indices)
+void TriangleModel::allocIndexBuffer(Mesh &mesh)
 {
-    vk::DeviceSize bufferSize = sizeof(indices[0]) * indices.size();
+    vk::DeviceSize bufferSize = sizeof(mesh.indices[0]) * mesh.indices.size();
 
     vk::Buffer stagingBuffer;
     vk::DeviceMemory stagingBufferMemory;
@@ -100,11 +99,11 @@ void TriangleModel::createIndexBuffer(const std::vector<uint16_t> &indices)
     device.createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferSrc, vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, stagingBuffer, stagingBufferMemory);
 
     data = device.getLogicalDevice().mapMemory(stagingBufferMemory, 0, bufferSize);
-    memcpy(data, indices.data(), (size_t)bufferSize);
+    memcpy(data, mesh.indices.data(), (size_t)bufferSize);
     device.getLogicalDevice().unmapMemory(stagingBufferMemory);
 
-    device.createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, indexBuffer, indexBufferMemory);
-    device.copyBuffer(stagingBuffer, indexBuffer, bufferSize);
+    device.createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, mesh.indexBuffer, mesh.indexBufferMemory);
+    device.copyBuffer(stagingBuffer, mesh.indexBuffer, bufferSize);
 
     device.getLogicalDevice().destroyBuffer(stagingBuffer);
     device.getLogicalDevice().freeMemory(stagingBufferMemory);
@@ -124,8 +123,49 @@ void TriangleModel::createUniformBuffers(const uint32_t bufferCount)
         device.createBuffer(bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, memoryProperty, uniformBuffers[i], uniformBufferMemories[i]);
 }
 
-void TriangleModel::bind(vk::CommandBuffer& commandBuffer)
+void TriangleModel::bind(vk::CommandBuffer& commandBuffer, Mesh& mesh)
 {
-    commandBuffer.bindVertexBuffers(0, vertexBuffer, {0});
-    commandBuffer.bindIndexBuffer(indexBuffer, 0, vk::IndexType::eUint16);
+    commandBuffer.bindVertexBuffers(0, mesh.vertexBuffer, {0});
+    commandBuffer.bindIndexBuffer(mesh.indexBuffer, 0, vk::IndexType::eUint16);
+}
+
+TriangleModel::Material& TriangleModel::createMaterial(Material &material, const std::string &materialName)
+{
+    materials.insert_or_assign(materialName, material);
+
+    return materials.at(materialName);
+}
+
+std::optional<std::reference_wrapper <TriangleModel::Material>> TriangleModel::getMaterial(const std::string &materialName)
+{
+    auto it = materials.find(materialName);
+
+    if (it == materials.end())
+        return std::nullopt;
+    
+    return std::optional<std::reference_wrapper<TriangleModel::Material>>{it->second};
+}
+
+std::optional<std::reference_wrapper<TriangleModel::Mesh>> TriangleModel::getMesh(const std::string &meshName)
+{
+    auto it = meshes.find(meshName);
+
+    if (it == meshes.end())
+        return std::nullopt;
+
+    return std::optional<std::reference_wrapper<TriangleModel::Mesh>>{it->second};
+}
+
+void TriangleModel::loadMeshes(const std::string& meshName, TriangleModel::Mesh& a_Mesh)
+{
+    allocVertexBuffer(a_Mesh);
+    allocIndexBuffer(a_Mesh);
+    std::cout << "Mesh vertex buffer: " << a_Mesh.vertexBuffer << '\n';
+    meshes.insert({meshName, a_Mesh});
+}
+
+void TriangleModel::addScene(RenderModel &a_RenderModel)
+{
+    std::cout << "adding scene pipeline address: " << a_RenderModel.material.pipeline << '\n';
+    m_RenderModels.push_back(a_RenderModel);
 }

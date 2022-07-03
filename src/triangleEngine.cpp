@@ -34,21 +34,33 @@ static uint32_t frame = 0;
 
 TriangleEngine::TriangleEngine()
 {
+
+    // triangleCamera = std::make_unique<TriangleCamera>(triangleWindow.getWindow(), WIDTH, HEIGHT);
+    // triangleModel = std::make_unique<TriangleModel>(triangleDevice);
+    // triangleModel->createUniformBuffers(triangleSwapchain.MAX_FRAMES_IN_FLIGHT);
+
+    // triangleDescriptor = std::make_unique<TriangleDescriptor>(triangleDevice, triangleSwapchain.MAX_FRAMES_IN_FLIGHT, triangleModel->getUniformBuffers());
+
+    // TriangleModel::Mesh cubeMesh = TriangleModel::Mesh(cubeVertices, cubeIndices);
+    // TriangleModel::Transform transform;
+    // TriangleModel::Material cubeMaterial;
+
+    // std::cout << "make model\n";
+    // TriangleModel::RenderModel cubeModel = TriangleModel::RenderModel(cubeMesh, transform, cubeMaterial);
+
+    // std::cout << "make ecs\n";
+    // ecs = std::make_unique<triangle::ECS>();
+    // triangle::Entity cubeEntity = triangle::Entity();
+    // ecs->addEntity(cubeEntity);
+    // ecs->assignComponent<TriangleModel::RenderModel>(cubeEntity, cubeModel);
+
+    // createPipelineLayout();
+    // std::cout << "Before: " << ecs->getComponent<TriangleModel::RenderModel>(cubeEntity)->material.pipeline << '\n';
+    // createPipeline();
+    // std::cout << "cube entity id: " << cubeEntity.id << '\n';
+    // triangleModel->createMaterial(cubeMaterial, "defaultMesh");
     
-    triangleCamera = std::make_unique<TriangleCamera>(triangleWindow.getWindow(), WIDTH, HEIGHT);
-    triangleModel = std::make_unique<TriangleModel>(triangleDevice, cubeVertices, cubeIndices);
-    triangleModel->createUniformBuffers(triangleSwapchain.MAX_FRAMES_IN_FLIGHT);
-    
-    ecs = std::make_unique<triangle::ECS>();
-    triangle::Entity tempEntity = triangle::Entity();
-    ecs->addEntity(tempEntity);
-
-    triangleDescriptor = std::make_unique<TriangleDescriptor>(triangleDevice, triangleSwapchain.MAX_FRAMES_IN_FLIGHT, triangleModel->getUniformBuffers());   
-
-    createPipelineLayout();
-    createPipeline();
-
-    createCommandBuffer();
+    // createCommandBuffer();
 }
 
 TriangleEngine::~TriangleEngine()
@@ -64,9 +76,9 @@ void TriangleEngine::drawUI()
     if (ImGui::Begin("Test"))
     {
         ImGui::BeginGroup();
-        ImGui::SliderFloat("pos x", &BoxPosition.x, 0.1f, 10.0f);
-        ImGui::SliderFloat("pos y", &BoxPosition.y, 0.1f, 10.0f);
-        ImGui::SliderFloat("pos z", &BoxPosition.z, 0.1f, 10.0f);
+        ImGui::SliderFloat("pos x", &BoxPosition.x, 0.f, 10.0f);
+        ImGui::SliderFloat("pos y", &BoxPosition.y, 0.f, 10.0f);
+        ImGui::SliderFloat("pos z", &BoxPosition.z, 0.f, 10.0f);
         ImGui::EndGroup();
 
         ImGui::BeginGroup();
@@ -94,6 +106,34 @@ void TriangleEngine::drawUI()
 
 void TriangleEngine::run()
 {
+    triangleCamera = std::make_unique<TriangleCamera>(triangleWindow.getWindow(), WIDTH, HEIGHT);
+    triangleModel = std::make_unique<TriangleModel>(triangleDevice);
+    triangleModel->createUniformBuffers(triangleSwapchain.MAX_FRAMES_IN_FLIGHT);
+
+    triangleDescriptor = std::make_unique<TriangleDescriptor>(triangleDevice, triangleSwapchain.MAX_FRAMES_IN_FLIGHT, triangleModel->getUniformBuffers());
+
+    TriangleModel::Mesh cubeMesh = TriangleModel::Mesh(cubeVertices, cubeIndices);
+    TriangleModel::Transform transform;
+    TriangleModel::Material cubeMaterial;
+
+    std::cout << "make model\n";
+    TriangleModel::RenderModel cubeModel = TriangleModel::RenderModel(cubeMesh, transform, cubeMaterial);
+
+    std::cout << "make ecs\n";
+    ecs = std::make_unique<triangle::ECS>();
+    triangle::Entity cubeEntity = triangle::Entity();
+    ecs->addEntity(cubeEntity);
+    ecs->assignComponent<TriangleModel::RenderModel>(cubeEntity, cubeModel);
+
+    createPipelineLayout();
+    std::cout << "Before: " << ecs->getComponent<TriangleModel::RenderModel>(cubeEntity)->material.pipeline << '\n';
+    createPipeline();
+    std::cout << "cube entity id: " << cubeEntity.id << '\n';
+    triangleModel->createMaterial(cubeMaterial, "defaultMesh");
+
+    createCommandBuffer();
+    initSceneSystem();
+
     uint32_t currentFrame = 0, imageIndex;
     triangleCamera->setCamera(cameraPos, glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f));
 
@@ -136,81 +176,96 @@ void TriangleEngine::createPipelineLayout()
         pushConstant
     );
 
-    pipelineLayout = triangleDevice.getLogicalDevice().createPipelineLayout(pipelineLayoutCreateInfo);
+    for (const auto& entity : ecs->getEntities())
+    {
+        if (auto component = ecs->getComponent<TriangleModel::RenderModel>(entity))
+        {
+            component->material.pipelineLayout = triangleDevice.getLogicalDevice().createPipelineLayout(pipelineLayoutCreateInfo);
+            std::cout << "pipeline layout: " << component->material.pipelineLayout << '\n';
+        }
+    }
+
 }
 
 void TriangleEngine::createPipeline()
 {
-    vk::Viewport viewport(0.0f, 0.0f, (float)triangleSwapchain.getExtent().width, (float)triangleSwapchain.getExtent().height, 0.0f, 1.0f);
-    vk::Rect2D scissor({0, 0}, triangleSwapchain.getExtent());
+    for (const auto& entity : ecs->getEntities())
+    {
+        if (auto component = ecs->getComponent<TriangleModel::RenderModel>(entity))
+        {
+            vk::Viewport viewport(0.0f, 0.0f, (float)triangleSwapchain.getExtent().width, (float)triangleSwapchain.getExtent().height, 0.0f, 1.0f);
+            vk::Rect2D scissor({0, 0}, triangleSwapchain.getExtent());
 
-    vk::ColorComponentFlags colorComponentFlags( vk::ColorComponentFlagBits::eR | 
-                                            vk::ColorComponentFlagBits::eG | 
-                                            vk::ColorComponentFlagBits::eB | 
-                                            vk::ColorComponentFlagBits::eA);
-    vk::PipelineColorBlendAttachmentState colorBlendAttachmentState(
-        false, 
-        vk::BlendFactor::eOne, 
-        vk::BlendFactor::eZero, 
-        vk::BlendOp::eAdd,
-        vk::BlendFactor::eOne,
-        vk::BlendFactor::eZero,
-        vk::BlendOp::eAdd, 
-        colorComponentFlags);
+            vk::ColorComponentFlags colorComponentFlags( vk::ColorComponentFlagBits::eR | 
+                                                    vk::ColorComponentFlagBits::eG | 
+                                                    vk::ColorComponentFlagBits::eB | 
+                                                    vk::ColorComponentFlagBits::eA);
+            vk::PipelineColorBlendAttachmentState colorBlendAttachmentState(
+                false, 
+                vk::BlendFactor::eOne, 
+                vk::BlendFactor::eZero, 
+                vk::BlendOp::eAdd,
+                vk::BlendFactor::eOne,
+                vk::BlendFactor::eZero,
+                vk::BlendOp::eAdd, 
+                colorComponentFlags);
 
-    TrianglePipeline::PipelineConfig pipelineConfig{
-        TriangleModel::Vertex::getBindingDesciptions(),
-        TriangleModel::Vertex::getAttributeDescriptions(),
-        vk::PipelineInputAssemblyStateCreateInfo(
-            vk::PipelineInputAssemblyStateCreateFlags(), 
-            vk::PrimitiveTopology::eTriangleList, false
-        ),
-        vk::PipelineViewportStateCreateInfo(
-            vk::PipelineViewportStateCreateFlags(), viewport, scissor
-        ),
-        vk::PipelineRasterizationStateCreateInfo(
-            vk::PipelineRasterizationStateCreateFlags(), 
-            false, 
-            false, 
-            vk::PolygonMode::eFill, 
-            vk::CullModeFlagBits::eNone, 
-            vk::FrontFace::eCounterClockwise, 
-            false, 
-            0.0f, 
-            0.0f, 
-            0.0f, 
-            1.0f
-        ),
-        vk::PipelineMultisampleStateCreateInfo(
-            vk::PipelineMultisampleStateCreateFlags(),
-            vk::SampleCountFlagBits::e1, 
-            false, 
-            1.0f,
-            nullptr,
-            false,
-            false
-        ),
-        vk::PipelineDepthStencilStateCreateInfo(
-            vk::PipelineDepthStencilStateCreateFlags(),
-            true,
-            true, 
-            vk::CompareOp::eLess, 
-            false, 
-            false
-        ),
-        vk::PipelineColorBlendStateCreateInfo(
-            vk::PipelineColorBlendStateCreateFlags(),
-            false,
-            vk::LogicOp::eCopy,
-            colorBlendAttachmentState,
-            {{1.0f, 1.0f, 1.0f, 1.0f}}
-        ),
-        std::nullopt,
-        pipelineLayout,
-        triangleSwapchain.getMainRenderPass()
-    };
+            TrianglePipeline::PipelineConfig pipelineConfig{
+                TriangleModel::Vertex::getBindingDesciptions(),
+                TriangleModel::Vertex::getAttributeDescriptions(),
+                vk::PipelineInputAssemblyStateCreateInfo(
+                    vk::PipelineInputAssemblyStateCreateFlags(), 
+                    vk::PrimitiveTopology::eTriangleList, false
+                ),
+                vk::PipelineViewportStateCreateInfo(
+                    vk::PipelineViewportStateCreateFlags(), viewport, scissor
+                ),
+                vk::PipelineRasterizationStateCreateInfo(
+                    vk::PipelineRasterizationStateCreateFlags(), 
+                    false, 
+                    false, 
+                    vk::PolygonMode::eFill, 
+                    vk::CullModeFlagBits::eNone, 
+                    vk::FrontFace::eCounterClockwise, 
+                    false, 
+                    0.0f, 
+                    0.0f, 
+                    0.0f, 
+                    1.0f
+                ),
+                vk::PipelineMultisampleStateCreateInfo(
+                    vk::PipelineMultisampleStateCreateFlags(),
+                    vk::SampleCountFlagBits::e1, 
+                    false, 
+                    1.0f,
+                    nullptr,
+                    false,
+                    false
+                ),
+                vk::PipelineDepthStencilStateCreateInfo(
+                    vk::PipelineDepthStencilStateCreateFlags(),
+                    true,
+                    true, 
+                    vk::CompareOp::eLess, 
+                    false, 
+                    false
+                ),
+                vk::PipelineColorBlendStateCreateInfo(
+                    vk::PipelineColorBlendStateCreateFlags(),
+                    false,
+                    vk::LogicOp::eCopy,
+                    colorBlendAttachmentState,
+                    {{1.0f, 1.0f, 1.0f, 1.0f}}
+                ),
+                std::nullopt,
+                component->material.pipelineLayout,
+                triangleSwapchain.getMainRenderPass()
+            };
 
-    trianglePipeline = std::make_unique<TrianglePipeline>(triangleDevice, pipelineConfig, "shaders/vert.spv", "shaders/frag.spv");
+            trianglePipeline = std::make_unique<TrianglePipeline>(triangleDevice, pipelineConfig, component->material, "shaders/vert.spv", "shaders/frag.spv");
+            std::cout << "component real pipeline: " << component->material.pipeline << '\n';
+        }
+    }
 }
 
 void TriangleEngine::createCommandBuffer()
@@ -248,8 +303,12 @@ void TriangleEngine::updateUniformBuffer(uint32_t currentImage)
     triangleDevice.getLogicalDevice().unmapMemory(triangleModel->getUniformBufferMemory(currentImage));
 }
 
-void TriangleEngine::recordCommandBuffer(vk::CommandBuffer& cmdBuffer, uint32_t imageIndex, uint32_t& currentFrame)
+void TriangleEngine::recordCommandBuffer(vk::CommandBuffer &cmdBuffer, uint32_t imageIndex, uint32_t &currentFrame)
 {
+    // auto materialPipeline = triangleModel->getMaterial("defaultMesh")->pipeline;
+    // auto materialPipelineLayout = triangleModel->getMaterial("defaultMesh")->pipelineLayout;
+    // auto mesh = triangleModel->getMesh("cube")->
+
     frame = (frame + 1) % 100;
 
     vk::CommandBufferBeginInfo cmdBufferBeginInfo(vk::CommandBufferUsageFlags(), nullptr);
@@ -266,23 +325,25 @@ void TriangleEngine::recordCommandBuffer(vk::CommandBuffer& cmdBuffer, uint32_t 
         clearValues);
 
     cmdBuffer.beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
+    auto renderModels = triangleModel->getRenderModels();
+    
+    for (auto& renderModel : renderModels)
+    {
+        trianglePipeline->bind(cmdBuffer, renderModel.material.pipeline);
+        cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, renderModel.material.pipelineLayout, 0, triangleDescriptor->getDescriptorSet(currentFrame), nullptr);
 
-    trianglePipeline->bind(cmdBuffer);
+        TriangleModel::MeshPushConstant push{};
+        push.offset = {0.0f, 0.0f, 0.0f};
+        push.color = {0.0f, 0.0f + (frame * 0.005f), 0.0f + (frame * 0.0025f)};
 
-    triangleModel->bind(cmdBuffer);
+        cmdBuffer.pushConstants<TriangleModel::MeshPushConstant>(renderModel.material.pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, push);
 
-    cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, triangleDescriptor->getDescriptorSet(currentFrame), nullptr);
+        triangleModel->bind(cmdBuffer, renderModel.mesh);
 
-    TriangleModel::MeshPushConstant push{};
-    push.offset = {0.0f, 0.0f, 0.0f};
-    push.color = {0.0f, 0.0f + (frame * 0.005f), 0.0f + (frame * 0.0025f)};
-
-    cmdBuffer.pushConstants<TriangleModel::MeshPushConstant>(pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, push);        
-
-    cmdBuffer.drawIndexed(static_cast<uint32_t>(cubeIndices.size()), 1, 0, 0, 0);
+        cmdBuffer.drawIndexed(static_cast<uint32_t>(renderModel.mesh.indices.size()), 1, 0, 0, 0);
+    }
 
     cmdBuffer.endRenderPass();
-
     cmdBuffer.end();
 }
 
@@ -311,4 +372,19 @@ void TriangleEngine::drawFrames(uint32_t& imageIndex, uint32_t& currentFrame)
 
     if (triangleDevice.getPresentQueue().presentKHR(presentInfo) != vk::Result::eSuccess)
         throw std::runtime_error("Something's wrong when presenting");
+}
+
+void TriangleEngine::initSceneSystem()
+{
+    for (const auto& entity : ecs->getEntities())
+    {
+        if (auto component = ecs->getComponent<TriangleModel::RenderModel>(entity))
+        {
+            triangleModel->loadMeshes("cube", component->mesh);
+            triangleModel->addScene(*component);
+            std::cout << "component" << component->material.pipeline << '\n';
+        }
+    }
+
+    std::cout << "from init system render modelsa: " << triangleModel->getRenderModels()[0].material.pipeline << '\n';
 }

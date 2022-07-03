@@ -6,6 +6,7 @@
 
 TriangleDescriptor::TriangleDescriptor(TriangleDevice& device, uint32_t descriptorCount, const std::vector<vk::Buffer>& buffers) : device{device}, descriptorCount{descriptorCount}
 {
+    std::cout << "construct descriptor\n";
     createDescriptorSetLayout();
     createDescriptorPool();
     createDescriptorSets(buffers);

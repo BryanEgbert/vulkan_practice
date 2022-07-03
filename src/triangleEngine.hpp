@@ -14,12 +14,13 @@
 #include <memory>
 #include <vector>
 
+using Index = uint16_t;
 
 class TriangleEngine
 {
 public:    
     static constexpr int WIDTH = 1920;
-    static constexpr int HEIGHT = 1200;
+    static constexpr int HEIGHT = 1280;
 
     TriangleEngine();
     ~TriangleEngine();
@@ -95,8 +96,8 @@ private:
     std::unique_ptr<TriangleModel> triangleModel;
     std::unique_ptr<TriangleDescriptor> triangleDescriptor;
     std::unique_ptr<TriangleCamera> triangleCamera;
-    std::unique_ptr<triangle::ECS> ecs;
     std::vector<vk::CommandBuffer> commandBuffers;
+    std::unique_ptr<triangle::ECS> ecs;
 
     glm::vec3 cameraPos = glm::vec3(0.f, 0.f, 2.f);
 
@@ -106,6 +107,7 @@ private:
     void createPipeline();
     void createCommandBuffer();
     void updateUniformBuffer(uint32_t currentImage);
-    void recordCommandBuffer(vk::CommandBuffer& cmdBuffer, uint32_t imageIndex, uint32_t& currentFrame);
-    void drawFrames(uint32_t& imageIndex, uint32_t& currentFrame);
+    void recordCommandBuffer(vk::CommandBuffer &cmdBuffer, uint32_t imageIndex, uint32_t &currentFrame);
+    void drawFrames(uint32_t &imageIndex, uint32_t &currentFrame);
+    void initSceneSystem();
 };

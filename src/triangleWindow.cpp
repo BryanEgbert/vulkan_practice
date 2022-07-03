@@ -20,7 +20,7 @@ void TriangleWindow::initWindow()
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    window = glfwCreateWindow(width, height, windowName, monitors[1], nullptr);
+    window = glfwCreateWindow(width, height, windowName, monitors[0], nullptr);
     
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
 }

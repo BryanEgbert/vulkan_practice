@@ -3,6 +3,7 @@
 #include <bitset>
 #include <unordered_map>
 #include <optional>
+#include <algorithm>
 
 namespace triangle
 {
@@ -15,12 +16,17 @@ namespace triangle
 	static ComponentID g_ComponentID = 0;
 	struct Entity
 	{
-		Entity();
+		Entity() : id{++g_EntityID}
+		{
+			std::cout << "construct new entity\n";
+		};
 
 		EntityID id;
-		std::bitset<maxComponents> componentMask;
 
-		bool operator==(const Entity &other);
+		bool operator==(const Entity &other)
+		{
+			return this->id == other.id;
+		}
 	};
 
 	template <typename T>
@@ -29,15 +35,70 @@ namespace triangle
 	class ECS
 	{
 	public:
-		bool deleteEntity(Entity& a_Entity);
-		void addEntity(Entity& a_Entity);
+		std::vector<Entity> getEntities() { return m_Entities; };
+		bool deleteEntity(Entity& a_Entity)
+		{
+			if (a_Entity.id == 0)
+				return false;
+
+			auto entityIndex = std::find(m_Entities.begin(), m_Entities.end(), a_Entity);
+			m_Entities.erase(entityIndex);
+
+			a_Entity.id = 0;
+
+			return true;
+		}
+
+		void addEntity(Entity& a_Entity)
+		{
+			m_Entities.emplace_back(a_Entity);
+		}
+
 		template <typename T>
-		bool assignComponent(Entity& a_Entity, const T &a_Component);
+		bool assignComponent(Entity& a_Entity, const T &a_Component)
+		{
+			if (a_Entity.id == 0)
+				return false;
+
+			for (auto &entity : m_Entities)
+			{
+				if (a_Entity == entity)
+				{
+					// ComponentID compID = ++g_ComponentID;
+
+					g_Components<T>.insert({a_Entity.id, a_Component});
+
+					return true;
+				}
+			}
+
+			return false;
+		}
+
 		template <typename T>
-		std::optional<std::reference_wrapper<T>> getComponent(Entity& a_Entity);
+		T* getComponent(const Entity& a_Entity)
+		{
+			if (a_Entity.id == 0)
+				return nullptr;
+
+			auto search = g_Components<T>.find(a_Entity.id);
+			if (search == g_Components<T>.end())
+				return nullptr;
+			else
+				return &(search->second);
+		}
+
 		template <typename T>
-		bool deleteComponent(Entity& a_Entity);
+		bool deleteComponent(Entity& a_Entity)
+		{
+			if (a_Entity.id == 0)
+				return false;
+
+			g_Components<T>.erase(a_Entity.id);
+			
+			return true;
+		}
 	private:
-		std::vector<Entity> g_Entities;
+		std::vector<Entity> m_Entities;
 	};
 }
