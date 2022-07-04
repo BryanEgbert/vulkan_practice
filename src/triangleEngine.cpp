@@ -116,30 +116,26 @@ void TriangleEngine::run()
     TriangleModel::Transform transform;
     TriangleModel::Material cubeMaterial;
 
-    std::cout << "make model\n";
     TriangleModel::RenderModel cubeModel = TriangleModel::RenderModel(cubeMesh, transform, cubeMaterial);
 
-    std::cout << "make ecs\n";
     ecs = std::make_unique<triangle::ECS>();
     triangle::Entity cubeEntity = triangle::Entity();
     ecs->addEntity(cubeEntity);
     ecs->assignComponent<TriangleModel::RenderModel>(cubeEntity, cubeModel);
 
     createPipelineLayout();
-    std::cout << "Before: " << ecs->getComponent<TriangleModel::RenderModel>(cubeEntity)->material.pipeline << '\n';
     createPipeline();
-    std::cout << "cube entity id: " << cubeEntity.id << '\n';
-    triangleModel->createMaterial(cubeMaterial, "defaultMesh");
+
+    // triangleModel->createMaterial(cubeMaterial, "defaultMesh");
 
     createCommandBuffer();
-    initSceneSystem();
+    // initSceneSystem();
 
     uint32_t currentFrame = 0, imageIndex;
     triangleCamera->setCamera(cameraPos, glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f));
 
     while(!triangleWindow.shouldClose())
     {
-        triangleSwapchain.acquireNextImage(&imageIndex, currentFrame);
 
         glfwPollEvents();
         
@@ -151,6 +147,7 @@ void TriangleEngine::run()
             triangleCamera->processCameraRotation(0.2f);
         }
 
+        triangleSwapchain.acquireNextImage(&imageIndex, currentFrame);
         triangleUI.renderFrame(imageIndex, currentFrame);
         drawFrames(imageIndex, currentFrame);
 
@@ -263,7 +260,6 @@ void TriangleEngine::createPipeline()
             };
 
             trianglePipeline = std::make_unique<TrianglePipeline>(triangleDevice, pipelineConfig, component->material, "shaders/vert.spv", "shaders/frag.spv");
-            std::cout << "component real pipeline: " << component->material.pipeline << '\n';
         }
     }
 }
@@ -327,20 +323,39 @@ void TriangleEngine::recordCommandBuffer(vk::CommandBuffer &cmdBuffer, uint32_t 
     cmdBuffer.beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
     auto renderModels = triangleModel->getRenderModels();
     
-    for (auto& renderModel : renderModels)
+    // for (auto& renderModel : renderModels)
+    // {
+    //     trianglePipeline->bind(cmdBuffer, renderModel.material.pipeline);
+    //     cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, renderModel.material.pipelineLayout, 0, triangleDescriptor->getDescriptorSet(currentFrame), nullptr);
+
+    //     TriangleModel::MeshPushConstant push{};
+    //     push.offset = {0.0f, 0.0f, 0.0f};
+    //     push.color = {0.0f, 0.0f + (frame * 0.005f), 0.0f + (frame * 0.0025f)};
+
+    //     cmdBuffer.pushConstants<TriangleModel::MeshPushConstant>(renderModel.material.pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, push);
+
+    //     triangleModel->bind(cmdBuffer, renderModel.mesh);
+
+    //     cmdBuffer.drawIndexed(static_cast<uint32_t>(renderModel.mesh.indices.size()), 1, 0, 0, 0);
+    // }
+
+    for (auto& entity : ecs->getEntities())
     {
-        trianglePipeline->bind(cmdBuffer, renderModel.material.pipeline);
-        cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, renderModel.material.pipelineLayout, 0, triangleDescriptor->getDescriptorSet(currentFrame), nullptr);
+        auto component = ecs->getComponent<TriangleModel::RenderModel>(entity);
+
+        if (component == nullptr) continue;
+        trianglePipeline->bind(cmdBuffer, component->material.pipeline);
+        cmdBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, component->material.pipelineLayout, 0, triangleDescriptor->getDescriptorSet(currentFrame), nullptr);
 
         TriangleModel::MeshPushConstant push{};
         push.offset = {0.0f, 0.0f, 0.0f};
         push.color = {0.0f, 0.0f + (frame * 0.005f), 0.0f + (frame * 0.0025f)};
 
-        cmdBuffer.pushConstants<TriangleModel::MeshPushConstant>(renderModel.material.pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, push);
+        cmdBuffer.pushConstants<TriangleModel::MeshPushConstant>(component->material.pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, push);
 
-        triangleModel->bind(cmdBuffer, renderModel.mesh);
+        triangleModel->bind(cmdBuffer, component->mesh);
 
-        cmdBuffer.drawIndexed(static_cast<uint32_t>(renderModel.mesh.indices.size()), 1, 0, 0, 0);
+        cmdBuffer.drawIndexed(static_cast<uint32_t>(component->mesh.indices.size()), 1, 0, 0, 0);
     }
 
     cmdBuffer.endRenderPass();

@@ -9,8 +9,7 @@
 
 class TriangleUI {
 public:
-    TriangleUI(TriangleDevice &device, TriangleWindow &window,
-                TriangleSwapchain &swapchain);
+    TriangleUI(TriangleDevice &device, TriangleWindow &window, TriangleSwapchain &swapchain);
     ~TriangleUI();
 
     vk::CommandBuffer getCommandBuffers(int index) {

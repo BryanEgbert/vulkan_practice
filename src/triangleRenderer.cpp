@@ -1,114 +1,86 @@
-// #include "triangleRenderer.hpp"
-// #include "triangleDevice.hpp"
-// #include "trianglePipeline.hpp"
-// #include "triangleSwapchain.hpp"
-// #include "vulkan/vulkan_core.h"
-// #include "vulkan/vulkan_enums.hpp"
-// #include "vulkan/vulkan_handles.hpp"
-// #include "vulkan/vulkan_structs.hpp"
-// #include <array>
-// #include <cstdint>
+#include "triangleRenderer.hpp"
+#include "triangleDevice.hpp"
+#include "trianglePipeline.hpp"
+#include "triangleSwapchain.hpp"
+#include "triangleECS.hpp"
 
-// TriangleRenderer::TriangleRenderer(TriangleDevice& device, TriangleSwapchain& swapchain) 
-//     : device{device}, swapchain{swapchain}
-// {
-// 	createPipelineLayout();
-// 	createPipeline();
-//     createCommandBuffer();
-// }
+#include <vulkan/vulkan.hpp>
 
-// TriangleRenderer::~TriangleRenderer()
-// {
-    
+#include <array>
+#include <cstdint>
 
-//     // device.getLogicalDevice().freeCommandBuffers(device.getCommandPool(), commandBuffer);
-// }
+namespace triangle
+{
+    Renderer::Renderer(TriangleDevice &device, TriangleSwapchain &swapchain, TriangleUI &ui)
+        : device{device}, swapchain{swapchain}, ui{ui}
+    {
+        createCommandBuffer();
+    }
 
-// void TriangleRenderer::createCommandBuffer()
-// {
-//     commandBuffers.resize(swapchain.MAX_FRAMES_IN_FLIGHT);
+    Renderer::~Renderer()
+    {
+        destroyCommandBuffer();        
+    }
 
-//     vk::CommandBufferAllocateInfo cmdBufferAllocateInfo(
-//         device.getCommandPool(),
-//         vk::CommandBufferLevel::ePrimary,
-//         commandBuffers.size());
+    void Renderer::createCommandBuffer()
+    {
+        commandBuffers.resize(swapchain.MAX_FRAMES_IN_FLIGHT);
 
-//     commandBuffers = device.getLogicalDevice().allocateCommandBuffers(cmdBufferAllocateInfo);
-// }
+        vk::CommandBufferAllocateInfo cmdBufferAllocateInfo(
+            device.getCommandPool(),
+            vk::CommandBufferLevel::ePrimary,
+            commandBuffers.size());
 
-// void TriangleRenderer::createPipeline()
-// {
-//     vk::Viewport viewport(0.0f, 0.0f, (float)swapchain.getExtent().width, (float)swapchain.getExtent().height, 0.0f, 1.0f);
-//     vk::Rect2D scissor({0, 0}, swapchain.getExtent());
+        commandBuffers = device.getLogicalDevice().allocateCommandBuffers(cmdBufferAllocateInfo);
+    }
 
-//     vk::ColorComponentFlags colorComponentFlags(vk::ColorComponentFlagBits::eR |
-//                                                 vk::ColorComponentFlagBits::eG |
-//                                                 vk::ColorComponentFlagBits::eB |
-//                                                 vk::ColorComponentFlagBits::eA);
-//     vk::PipelineColorBlendAttachmentState colorBlendAttachmentState(
-//         false,
-//         vk::BlendFactor::eOne,
-//         vk::BlendFactor::eZero,
-//         vk::BlendOp::eAdd,
-//         vk::BlendFactor::eOne,
-//         vk::BlendFactor::eZero,
-//         vk::BlendOp::eAdd,
-//         colorComponentFlags);
+    void Renderer::beginCommandBuffer()
+    {
+        swapchain.acquireNextImage(&imageIndex, currentFrame);
 
-//     TrianglePipeline::PipelineConfig pipelineConfig{
-//         TriangleModel::Vertex::getBindingDesciptions(),
-//         TriangleModel::Vertex::getAttributeDescriptions(),
-//         vk::PipelineInputAssemblyStateCreateInfo(
-//             vk::PipelineInputAssemblyStateCreateFlags(),
-//             vk::PrimitiveTopology::eTriangleList, false),
-//         vk::PipelineViewportStateCreateInfo(
-//             vk::PipelineViewportStateCreateFlags(), viewport, scissor),
-//         vk::PipelineRasterizationStateCreateInfo(
-//             vk::PipelineRasterizationStateCreateFlags(),
-//             false,
-//             false,
-//             vk::PolygonMode::eFill,
-//             vk::CullModeFlagBits::eNone,
-//             vk::FrontFace::eCounterClockwise,
-//             false,
-//             0.0f,
-//             0.0f,
-//             0.0f,
-//             1.0f),
-//         vk::PipelineMultisampleStateCreateInfo(
-//             vk::PipelineMultisampleStateCreateFlags(),
-//             vk::SampleCountFlagBits::e1,
-//             false,
-//             1.0f,
-//             nullptr,
-//             false,
-//             false),
-//         vk::PipelineDepthStencilStateCreateInfo(
-//             vk::PipelineDepthStencilStateCreateFlags(),
-//             true,
-//             true,
-//             vk::CompareOp::eLess,
-//             false,
-//             false),
-//         vk::PipelineColorBlendStateCreateInfo(
-//             vk::PipelineColorBlendStateCreateFlags(),
-//             false,
-//             vk::LogicOp::eCopy,
-//             colorBlendAttachmentState,
-//             {{1.0f, 1.0f, 1.0f, 1.0f}}),
-//         std::nullopt,
-//         pipelineLayout,
-//         swapchain.getMainRenderPass()};
+        ui.renderFrame(imageIndex, currentFrame);
 
-//     trianglePipeline = std::make_unique<TrianglePipeline>(device, pipelineConfig, "shaders/vert.spv", "shaders/frag.spv");
-// }
+        vk::CommandBufferBeginInfo commandBufferBeginInfo(vk::CommandBufferUsageFlags(), nullptr);
+        commandBuffers[currentFrame].begin(commandBufferBeginInfo);
+    }
 
-// void TriangleRenderer::createPipelineLayout()
-// {
+    void Renderer::endCommandBuffer()
+    {
+        commandBuffers[currentFrame].end();
+    }
 
-// }
+    void Renderer::beginRenderPass()
+    {
+        std::array<vk::ClearValue, 2> clearValues;
+        clearValues[0].setColor(vk::ClearColorValue(std::array<float, 4>({{0.0f, 0.0f, 0.0f, 1.0f}})));
+        clearValues[1].setDepthStencil({1.0f, 0});
 
-// void TriangleRenderer::drawFrames()
-// {
-    
-// }
+        vk::RenderPassBeginInfo renderPassBeginInfo(
+            swapchain.getMainRenderPass(),
+            swapchain.getMainFramebuffers()[imageIndex],
+            {{0, 0}, swapchain.getExtent()},
+            clearValues);
+        
+        commandBuffers[currentFrame].beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
+    }
+
+    void Renderer::endRenderpass()
+    {
+        commandBuffers[currentFrame].endRenderPass();
+    }
+
+    void Renderer::submitBuffer()
+    {
+        std::array<vk::PipelineStageFlags, 1> waitStages = {vk::PipelineStageFlagBits::eColorAttachmentOutput};
+
+        std::array<vk::Semaphore, 1> waitSemaphore = {swapchain.getPresentSemaphore(currentFrame)};
+        std::array<vk::Semaphore, 1> signalSemaphore = {swapchain.getRenderSemaphore(currentFrame)};
+
+        std::array<vk::CommandBuffer, 2> currentCommandBuffer = {commandBuffers[currentFrame], ui.getCommandBuffers(currentFrame)};
+    }
+
+    void Renderer::destroyCommandBuffer()
+    {
+        device.getLogicalDevice().freeCommandBuffers(device.getCommandPool(), commandBuffers);
+    }
+}

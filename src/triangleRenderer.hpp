@@ -1,31 +1,40 @@
 #pragma once
 
 #include "triangleDevice.hpp"
-#include "trianglePipeline.hpp"
 #include "triangleSwapchain.hpp"
+#include "triangleUI.hpp"
 
 #include <vulkan/vulkan.hpp>
 
-class TriangleRenderer
+#include <memory>
+#include <iostream>
+
+namespace triangle
 {
-public:
-    TriangleRenderer(TriangleDevice& device, TriangleSwapchain& swapchain);
-    ~TriangleRenderer();
+    class Renderer
+    {
+    public:
+        
+        Renderer(TriangleDevice& device, TriangleSwapchain& swapchain, TriangleUI& ui);
+        ~Renderer();
+        
+        void beginCommandBuffer();
+        void endCommandBuffer();
 
-    void drawFrames();
-private:
-    void drawUI();
-    void createPipelineLayout();
-    void createPipeline();
-    void createCommandBuffer();
+        void beginRenderPass();
+        void endRenderpass();
 
-    TriangleDevice& device;
-    TriangleSwapchain& swapchain;
+        void submitBuffer();
+        void destroyCommandBuffer();
+    private:
+        void createCommandBuffer();
 
-    vk::PipelineLayout pipelineLayout;
-    std::unique_ptr<TrianglePipeline> trianglePipeline;
-    std::unique_ptr<TriangleModel> triangleModel;
-    // std::unique_ptr<TriangleDescriptor> triangleDescriptor;
-    // std::unique_ptr<TriangleCamera> triangleCamera;
-    std::vector<vk::CommandBuffer> commandBuffers;
-};
+        TriangleDevice& device;
+        TriangleUI& ui;
+        TriangleSwapchain swapchain{device};
+
+        std::vector<vk::CommandBuffer> commandBuffers;
+
+        uint32_t currentFrame = 0, imageIndex;
+    };
+}

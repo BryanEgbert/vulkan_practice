@@ -13,23 +13,16 @@
 #include <vector>
 
 TriangleModel::TriangleModel(TriangleDevice& device) : device{device} {
-    std::cout << "construct model\n";
     m_RenderModels.reserve(100);
 }
 
 TriangleModel::~TriangleModel()
 {
-    // device.getLogicalDevice().destroyBuffer(indexBuffer);
-    // device.getLogicalDevice().freeMemory(indexBufferMemory);
-
-    // device.getLogicalDevice().destroyBuffer(vertexBuffer);
-    // device.getLogicalDevice().freeMemory(vertexBufferMemory);
-
-    // for (int i = 0; i < uniformBufferCount; ++i)
-    // {
-    //     device.getLogicalDevice().destroyBuffer(uniformBuffers[i]);
-    //     device.getLogicalDevice().freeMemory(uniformBufferMemories[i]);
-    // }
+    for (int i = 0; i < uniformBufferCount; ++i)
+    {
+        device.getLogicalDevice().destroyBuffer(uniformBuffers[i]);
+        device.getLogicalDevice().freeMemory(uniformBufferMemories[i]);
+    }
 }
 
 std::vector<vk::VertexInputBindingDescription> TriangleModel::Vertex::getBindingDesciptions()

@@ -1,13 +1,12 @@
 #include "triangleUI.hpp"
+#include "triangleDevice.hpp"
+#include "triangleSwapchain.hpp"
+
 #include <imgui/imgui_impl_glfw.h>
 #include <imgui/imgui_impl_vulkan.h>
 #include <imgui/imgui.h>
-#include "triangleDevice.hpp"
-#include "triangleSwapchain.hpp"
-#include "vulkan/vulkan_core.h"
-#include "vulkan/vulkan_enums.hpp"
-#include "vulkan/vulkan_handles.hpp"
-#include "vulkan/vulkan_structs.hpp"
+
+#include <vulkan/vulkan.hpp>
 
 
 TriangleUI::TriangleUI(TriangleDevice& device, TriangleWindow& window, TriangleSwapchain& swapchain) 
