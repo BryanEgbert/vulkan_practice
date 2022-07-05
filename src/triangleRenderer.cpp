@@ -14,7 +14,11 @@ namespace triangle
     Renderer::Renderer(TriangleDevice &device, TriangleSwapchain &swapchain, TriangleUI &ui)
         : device{device}, swapchain{swapchain}, ui{ui}
     {
+        // std::cout << "cmd buffer before: " << commandBuffers[0] << "IS NULL: " << commandBuffers[0] << '\n';
+        commandBuffers.resize(swapchain.MAX_FRAMES_IN_FLIGHT);
+
         createCommandBuffer();
+        std::cout << "cmd buffer: " << commandBuffers[0] << "IS NULL: " << commandBuffers[0] << '\n';
     }
 
     Renderer::~Renderer()
@@ -24,7 +28,6 @@ namespace triangle
 
     void Renderer::createCommandBuffer()
     {
-        commandBuffers.resize(swapchain.MAX_FRAMES_IN_FLIGHT);
 
         vk::CommandBufferAllocateInfo cmdBufferAllocateInfo(
             device.getCommandPool(),
@@ -40,6 +43,7 @@ namespace triangle
 
         ui.renderFrame(imageIndex, currentFrame);
 
+        commandBuffers[currentFrame].reset();
         vk::CommandBufferBeginInfo commandBufferBeginInfo(vk::CommandBufferUsageFlags(), nullptr);
         commandBuffers[currentFrame].begin(commandBufferBeginInfo);
     }
@@ -77,6 +81,20 @@ namespace triangle
         std::array<vk::Semaphore, 1> signalSemaphore = {swapchain.getRenderSemaphore(currentFrame)};
 
         std::array<vk::CommandBuffer, 2> currentCommandBuffer = {commandBuffers[currentFrame], ui.getCommandBuffers(currentFrame)};
+
+        vk::SubmitInfo submitInfo(waitSemaphore, waitStages, currentCommandBuffer, signalSemaphore);
+        std::vector<vk::SubmitInfo> submitInfos = {submitInfo};
+
+        device.getGraphicsQueue().submit(submitInfos, swapchain.getInFlightFences(currentFrame));
+
+        std::array<vk::SwapchainKHR, 1> swapchains = {swapchain.getSwapchain()};
+
+        vk::PresentInfoKHR presentInfo(signalSemaphore, swapchains, imageIndex);
+
+        if (device.getPresentQueue().presentKHR(presentInfo) != vk::Result::eSuccess)
+            throw std::runtime_error("Something's wrong when presenting");
+
+        currentFrame = (currentFrame + 1) % swapchain.MAX_FRAMES_IN_FLIGHT;
     }
 
     void Renderer::destroyCommandBuffer()

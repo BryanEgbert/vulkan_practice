@@ -10,17 +10,21 @@
 #include <stdexcept>
 #include <vector>
 
-TrianglePipeline::TrianglePipeline(TriangleDevice &device, PipelineConfig &pipelineConfig, TriangleModel::Material &material, const char *vertFilePath, const char *fragFilePath)
-    : device{device}, pipelineConfig{pipelineConfig}, vertShaderPath{vertFilePath}, fragShaderPath{fragFilePath}
-{
-    std::cout << "Creating pipeline\n";
-    createGraphicsPipeline(material);
-}
+TrianglePipeline::TrianglePipeline(TriangleDevice &device)
+    : device{device} {}
 
 TrianglePipeline::~TrianglePipeline()
 {
+    std::cout << ' ';
+    // device.getLogicalDevice().destroyShaderModule(fragShaderModule);
+    // device.getLogicalDevice().destroyShaderModule(vertShaderModule);
+}
+
+void TrianglePipeline::destroyShaderModule()
+{
     device.getLogicalDevice().destroyShaderModule(fragShaderModule);
     device.getLogicalDevice().destroyShaderModule(vertShaderModule);
+
     device.getLogicalDevice().destroyPipeline(pipeline);
 }
 
@@ -42,16 +46,15 @@ std::vector<char> TrianglePipeline::readFile(const char* filename)
     return buffer;
 }
 
-void TrianglePipeline::bind(vk::CommandBuffer &commandBuffer, const vk::Pipeline& materialPipeline)
+void TrianglePipeline::bind(vk::CommandBuffer &commandBuffer)
 {
-    std::cout << "Binding pipeline: " << materialPipeline << '\n';
-    commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, materialPipeline);
+    commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
 }
 
-void TrianglePipeline::createGraphicsPipeline(TriangleModel::Material &material)
+void TrianglePipeline::createGraphicsPipeline(PipelineConfig &pipelineConfig, const char *vertFilePath, const char *fragFilePath)
 {
-    auto vertShaderCode = TrianglePipeline::readFile(vertShaderPath);
-    auto fragShaderCode = TrianglePipeline::readFile(fragShaderPath);
+    auto vertShaderCode = TrianglePipeline::readFile(vertFilePath);
+    auto fragShaderCode = TrianglePipeline::readFile(fragFilePath);
 
     vertShaderModule = createShaderModule(vertShaderCode);
     fragShaderModule = createShaderModule(fragShaderCode);
@@ -84,7 +87,8 @@ void TrianglePipeline::createGraphicsPipeline(TriangleModel::Material &material)
     );
 
     vk::Result result;
-    std::tie(result, material.pipeline) = device.getLogicalDevice().createGraphicsPipeline(nullptr, pipelineCreateInfo);
+    std::tie(result, pipeline) = device.getLogicalDevice().createGraphicsPipeline(nullptr, pipelineCreateInfo);
+    // std::cout << "pipeline: " << material.pipeline << '\n'; 
 }
 
 vk::ShaderModule TrianglePipeline::createShaderModule(const std::vector<char>& code)

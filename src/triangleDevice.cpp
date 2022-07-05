@@ -24,19 +24,10 @@ TriangleDevice::TriangleDevice(const char* appName, TriangleWindow& window)
 
 TriangleDevice::~TriangleDevice()
 {
-    std::cout << "deleting command pool...\n";
     device.destroyCommandPool(mainCommandPool);
-
-    std::cout << "deleting device...\n";
     device.destroy();
-
-    std::cout << "deleting surface...\n";
-    instance.destroySurfaceKHR(surface);
-    
-    std::cout << "destroying debug utils...\n";
+    instance.destroySurfaceKHR(surface);    
     instance.destroyDebugUtilsMessengerEXT(debugUtilsMessenger);
-
-    std::cout << "deleting instance...\n";
     instance.destroy();
 }
 

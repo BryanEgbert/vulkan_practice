@@ -61,7 +61,6 @@ std::vector<vk::VertexInputAttributeDescription> TriangleModel::Vertex::getAttri
 
 void TriangleModel::allocVertexBuffer(Mesh& mesh)
 {
-    
     vk::DeviceSize bufferSize = sizeof(mesh.vertices[0]) * mesh.vertices.size();
 
     vk::Buffer stagingBuffer;
@@ -153,12 +152,10 @@ void TriangleModel::loadMeshes(const std::string& meshName, TriangleModel::Mesh&
 {
     allocVertexBuffer(a_Mesh);
     allocIndexBuffer(a_Mesh);
-    std::cout << "Mesh vertex buffer: " << a_Mesh.vertexBuffer << '\n';
     meshes.insert({meshName, a_Mesh});
 }
 
 void TriangleModel::addScene(RenderModel &a_RenderModel)
 {
-    std::cout << "adding scene pipeline address: " << a_RenderModel.material.pipeline << '\n';
     m_RenderModels.push_back(a_RenderModel);
 }

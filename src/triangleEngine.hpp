@@ -23,17 +23,12 @@ public:
     static constexpr int HEIGHT = 1280;
 
     TriangleEngine();
-    ~TriangleEngine();
 
-    void run();
+    void cleanup();
 private:
-    TriangleModel::MVP ubo{};
+    TriangleModel::MVP mvp{};
 
-    struct BoxPosition {
-        float x = 0.f, y = 0.f, z = 0.f;
-    } BoxPosition;
-
-    std::vector<TriangleModel::Vertex> vertices = {
+    std::vector<TriangleModel::Vertex> squareVertices = {
         {{-0.5f, -0.5f, 0.0f}, {0.5f, 0.0f, 0.0f}},
         {{0.5f, -0.5f, 0.0f}, {0.5f, 0.0f, 0.0f}},
         {{0.5f, 0.5f, 0.0f}, {0.5f, 0.0f, 0.0f}},
@@ -73,7 +68,7 @@ private:
         {{-0.5f, 0.5f, 0.5f}, {0.6f, 0.2f, 0.5f}},
     };
 
-    std::vector<uint16_t> indices = {
+    std::vector<uint16_t> squareIndices = {
         0, 1, 2, 2, 3, 0
     };
 
@@ -90,24 +85,21 @@ private:
     TriangleDevice triangleDevice{"vulkan basic", triangleWindow};
     TriangleSwapchain triangleSwapchain{triangleDevice};
     TriangleUI triangleUI{triangleDevice, triangleWindow, triangleSwapchain};
+    TrianglePipeline trianglePipeline{triangleDevice};
+
+    std::unique_ptr<triangle::Renderer> triangleRenderer;
 
     vk::PipelineLayout pipelineLayout;
-    std::unique_ptr<TrianglePipeline> trianglePipeline;
     std::unique_ptr<TriangleModel> triangleModel;
     std::unique_ptr<TriangleDescriptor> triangleDescriptor;
     std::unique_ptr<TriangleCamera> triangleCamera;
-    std::vector<vk::CommandBuffer> commandBuffers;
     std::unique_ptr<triangle::ECS> ecs;
 
     glm::vec3 cameraPos = glm::vec3(0.f, 0.f, 2.f);
 
-    // void newFrame();
     void drawUI();
     void createPipelineLayout();
     void createPipeline();
-    void createCommandBuffer();
-    void updateUniformBuffer(uint32_t currentImage);
-    void recordCommandBuffer(vk::CommandBuffer &cmdBuffer, uint32_t imageIndex, uint32_t &currentFrame);
-    void drawFrames(uint32_t &imageIndex, uint32_t &currentFrame);
+    void cameraSystem(uint32_t currentImage);
     void initSceneSystem();
 };

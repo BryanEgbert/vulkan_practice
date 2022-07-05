@@ -14,8 +14,8 @@ class TrianglePipeline
 public:
     struct PipelineConfig
     {
-        const std::vector<vk::VertexInputBindingDescription>& bindingDescriptions;
-        const std::vector<vk::VertexInputAttributeDescription>& attributeDescriptions;
+        const std::vector<vk::VertexInputBindingDescription>& bindingDescriptions{};
+        const std::vector<vk::VertexInputAttributeDescription>& attributeDescriptions{};
         vk::PipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo;
         vk::PipelineViewportStateCreateInfo viewportStateCreateInfo;
         vk::PipelineRasterizationStateCreateInfo rasterizerStateCreateInfo;
@@ -27,23 +27,21 @@ public:
         vk::RenderPass renderPass;
     };
 
-    TrianglePipeline(TriangleDevice &device, PipelineConfig &pipelineConfig, TriangleModel::Material &material, const char *vertFilePath, const char *fragFilePath);
+    TrianglePipeline(TriangleDevice &device);
+    void createGraphicsPipeline(PipelineConfig &pipelineConfig, const char *vertFilePath, const char *fragFilePath);
     ~TrianglePipeline();
 
-    void bind(vk::CommandBuffer &commandBuffer, const vk::Pipeline& materialPipeline);
-    vk::Pipeline& getPipeline() { return pipeline; };
+    void destroyShaderModule();
+
+    void bind(vk::CommandBuffer &commandBuffer);
 private:
 
     TriangleDevice& device;
-    PipelineConfig pipelineConfig;
-    const char* vertShaderPath;
-    const char* fragShaderPath;
 
     static std::vector<char> readFile(const char* filename);
 
     vk::ShaderModule vertShaderModule, fragShaderModule;
-    vk::Pipeline pipeline;
 
     vk::ShaderModule createShaderModule(const std::vector<char>& code);
-    void createGraphicsPipeline(TriangleModel::Material& material);
+    vk::Pipeline pipeline;
 };

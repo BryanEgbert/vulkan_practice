@@ -52,7 +52,6 @@ public:
 
     struct Material
     {
-        vk::Pipeline pipeline = VK_NULL_HANDLE;
         vk::PipelineLayout pipelineLayout = VK_NULL_HANDLE;
     };
 
@@ -60,9 +59,9 @@ public:
     {
         Mesh &mesh;
         Transform &transform;
-        Material &material;
+        // Material &material;
 
-        RenderModel(Mesh& a_Mesh, Transform& a_Transform, Material& a_Material) : mesh{a_Mesh}, transform{a_Transform}, material{a_Material} {};
+        RenderModel(Mesh& a_Mesh, Transform& a_Transform) : mesh{a_Mesh}, transform{a_Transform}{};
     };
 
 
@@ -88,6 +87,9 @@ public:
 
     void bind(vk::CommandBuffer &commandBuffer, Mesh& mesh);
     void createUniformBuffers(const uint32_t bufferCount);
+
+    void allocVertexBuffer(Mesh &mesh);
+    void allocIndexBuffer(Mesh &mesh);
     
 private:
     TriangleDevice& device;
@@ -107,7 +109,4 @@ private:
     void* data;
 
     uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
-
-    void allocVertexBuffer(Mesh &mesh);
-    void allocIndexBuffer(Mesh &mesh);
 };

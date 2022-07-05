@@ -18,6 +18,9 @@ namespace triangle
         Renderer(TriangleDevice& device, TriangleSwapchain& swapchain, TriangleUI& ui);
         ~Renderer();
         
+        vk::CommandBuffer& getCurrentCommandBuffer() { return commandBuffers.at(currentFrame); };
+        uint32_t getCurrentFrame() { return currentFrame; };
+
         void beginCommandBuffer();
         void endCommandBuffer();
 
@@ -31,7 +34,7 @@ namespace triangle
 
         TriangleDevice& device;
         TriangleUI& ui;
-        TriangleSwapchain swapchain{device};
+        TriangleSwapchain& swapchain;
 
         std::vector<vk::CommandBuffer> commandBuffers;
 
