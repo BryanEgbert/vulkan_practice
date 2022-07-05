@@ -26,8 +26,6 @@ public:
 
     void cleanup();
 private:
-    TriangleModel::MVP mvp{};
-
     std::vector<TriangleModel::Vertex> squareVertices = {
         {{-0.5f, -0.5f, 0.0f}, {0.5f, 0.0f, 0.0f}},
         {{0.5f, -0.5f, 0.0f}, {0.5f, 0.0f, 0.0f}},
@@ -100,6 +98,6 @@ private:
     void drawUI();
     void createPipelineLayout();
     void createPipeline();
-    void cameraSystem(uint32_t currentImage);
+    void mvpSystem(uint32_t currentImage);
     void initSceneSystem();
 };

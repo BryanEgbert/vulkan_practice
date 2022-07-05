@@ -37,7 +37,6 @@ TriangleEngine::TriangleEngine()
 {
     // NOTE: Cannot seperate initialization with main loop because main loop will get different memory addres than the initialization ones.
     
-    triangleCamera = std::make_unique<TriangleCamera>(triangleWindow.getWindow(), WIDTH, HEIGHT);
     triangleModel = std::make_unique<TriangleModel>(triangleDevice);
     triangleModel->createUniformBuffers(triangleSwapchain.MAX_FRAMES_IN_FLIGHT);
 
@@ -46,6 +45,7 @@ TriangleEngine::TriangleEngine()
     // Adding entity
     TriangleModel::Mesh cubeMesh = TriangleModel::Mesh(cubeVertices, cubeIndices), squareMesh = TriangleModel::Mesh(squareVertices, squareIndices);
     TriangleModel::Transform cubeTransform, squareTransform;
+    squareTransform.position = glm::vec3(5.f, 5.f, 5.f);
 
     TriangleModel::RenderModel cubeModel = TriangleModel::RenderModel(cubeMesh, cubeTransform), 
                                squareModel = TriangleModel::RenderModel(squareMesh, squareTransform);
@@ -63,6 +63,8 @@ TriangleEngine::TriangleEngine()
     createPipeline();
 
     triangleRenderer = std::make_unique<triangle::Renderer>(triangleDevice, triangleSwapchain, triangleUI);
+
+    triangleCamera = std::make_unique<TriangleCamera>(triangleWindow.getWindow(), WIDTH, HEIGHT);
     triangleCamera->setCamera(cameraPos, glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f));
 
     initSceneSystem();
@@ -72,7 +74,7 @@ TriangleEngine::TriangleEngine()
     // Main loop
     while (!triangleWindow.shouldClose())
     {
-
+        frame = (frame + 1) % 100; 
         glfwPollEvents();
 
         triangleUI.draw([this]
@@ -90,23 +92,25 @@ TriangleEngine::TriangleEngine()
         auto currentCommandBuffer = triangleRenderer->getCurrentCommandBuffer();
 
         trianglePipeline.bind(currentCommandBuffer);
+
         currentCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, triangleDescriptor->getDescriptorSet(currentFrame), nullptr);
+        mvpSystem(triangleRenderer->getCurrentFrame());
+
         for (const auto &entity : ecs->getEntities())
         {
-            cameraSystem(triangleRenderer->getCurrentFrame());
-
             auto component = ecs->getComponent<TriangleModel::RenderModel>(entity);
 
             if (component == nullptr)
                 continue;
+                
+            triangleModel->bind(currentCommandBuffer, component->mesh);
 
             TriangleModel::MeshPushConstant push{};
-            push.offset = {0.0f, 0.0f, 0.0f};
+            push.offset = {0.0f + (frame * 0.005f * entity.id * entity.id), 0.0f, 0.0f + (frame * 0.005f * entity.id * entity.id)};
             push.color = {0.0f, 0.0f + (frame * 0.005f), 0.0f + (frame * 0.0025f)};
 
             currentCommandBuffer.pushConstants<TriangleModel::MeshPushConstant>(pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, push);
 
-            triangleModel->bind(currentCommandBuffer, component->mesh);
 
             currentCommandBuffer.drawIndexed(static_cast<uint32_t>(component->mesh.indices.size()), 1, 0, 0, 0);
         }
@@ -125,23 +129,31 @@ void TriangleEngine::drawUI()
 {
     float velocity = 0.25f;
     // ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
-    if (ImGui::Begin("Test"))
+    char entityID[50];
+    for (const auto& entity : ecs->getEntities())
     {
-        for (const auto& entity : ecs->getEntities())
+        sprintf(entityID, "Entity %d", entity.id);
+        if (ImGui::Begin(entityID))
         {
             auto component = ecs->getComponent<TriangleModel::RenderModel>(entity);
             if (component == nullptr) continue;
 
-            ImGui::BeginGroup();
-            ImGui::Text("Entity ID: %d\nTransform component: %p", entity.id, (uintptr_t)&(component->transform));
-            ImGui::SliderFloat("pos x", &component->transform.position.x, 0.f, 10.0f);
-            ImGui::SliderFloat("pos y", &component->transform.position.y, 0.f, 10.0f);
-            ImGui::SliderFloat("pos z", &component->transform.position.z, 0.f, 10.0f);
+            // ImGui::BeginGroup();
 
-            ImGui::EndGroup();
+            ImGui::Text("Entity ID: %d\nTransform component: %p", entity.id, std::addressof(component->transform.position));
+            ImGui::Text("translation: (%.3f, %.3f, %.3f)", component->transform.position.x, component->transform.position.y, component->transform.position.z);
+            // ImGui::SliderFloat("pos x", &component->transform.position.x, 0.f, 10.0f);
+            // ImGui::SliderFloat("pos y", &component->transform.position.y, 0.f, 10.0f);
+            // ImGui::SliderFloat("pos z", &component->transform.position.z, 0.f, 10.0f);
+            ImGui::SliderFloat3("position", &(component->transform.position.x), 0.f, 10.f);
 
+            // ImGui::EndGroup();
+            ImGui::End();
         }
+    }
 
+    if (ImGui::Begin("Camera"))
+    {
         ImGui::BeginGroup();
         auto cameraProperty = triangleCamera->getCameraProperty();
         ImGui::Text("Cam pos: (%f, %f, %f)", cameraProperty.cameraPos.x, cameraProperty.cameraPos.y, cameraProperty.cameraPos.z);
@@ -150,8 +162,6 @@ void TriangleEngine::drawUI()
         ImGui::Text("Cam direction: (%f, %f, %f)", cameraProperty.direction.x, cameraProperty.direction.y, cameraProperty.direction.z);
 
         ImGui::EndGroup();
-
-
         ImGui::End();
     }
 
@@ -181,7 +191,7 @@ void TriangleEngine::cleanup()
     }
 
     triangleDevice.getLogicalDevice().destroyPipelineLayout(pipelineLayout);
-    trianglePipeline.destroyShaderModule();
+    // trianglePipeline.destroyShaderModule();
 }
 
 void TriangleEngine::createPipelineLayout()
@@ -201,12 +211,6 @@ void TriangleEngine::createPipelineLayout()
     );
 
     pipelineLayout = triangleDevice.getLogicalDevice().createPipelineLayout(pipelineLayoutCreateInfo);
-    // for (const auto& entity : ecs->getEntities())
-    // {
-    //     if (auto component = ecs->getComponent<TriangleModel::RenderModel>(entity))
-    //     {
-    //     }
-    // }
 }
 
 void TriangleEngine::createPipeline()
@@ -280,24 +284,19 @@ void TriangleEngine::createPipeline()
         triangleSwapchain.getMainRenderPass()
     };
 
-    trianglePipeline.createGraphicsPipeline(pipelineConfig, "shaders/vert.spv", "shaders/frag.spv"); 
-    // for (const auto& entity : ecs->getEntities())
-    // {
-    //     if (auto component = ecs->getComponent<TriangleModel::RenderModel>(entity))
-    //     {
-    //     }
-    // }
+    trianglePipeline.createGraphicsPipeline(pipelineConfig, "shaders/vert.spv", "shaders/frag.spv");
 }
 
-void TriangleEngine::cameraSystem(uint32_t currentImage)
+void TriangleEngine::mvpSystem(uint32_t currentImage)
 {
+    TriangleModel::MVP mvp{};
     for (auto& entity : ecs->getEntities())
     {
         auto component = ecs->getComponent<TriangleModel::RenderModel>(entity);
 
         if (component == nullptr) continue;
 
-        glm::mat4 transform = glm::translate(glm::mat4{1.0f}, {component->transform.position.x, component->transform.position.y, component->transform.position.z});
+        glm::mat4 transform = glm::translate(glm::mat4{1.0f}, component->transform.position);
 
         mvp.model = transform;
         
@@ -306,14 +305,13 @@ void TriangleEngine::cameraSystem(uint32_t currentImage)
 
         mvp.view = triangleCamera->getView();
 
-        mvp.proj = glm::perspective(glm::radians(45.0f), triangleSwapchain.getExtent().width / (float) triangleSwapchain.getExtent().height, 0.1f, 20.0f);
+        mvp.proj = glm::perspective(glm::radians(45.0f), triangleSwapchain.getExtent().width / static_cast<float>(triangleSwapchain.getExtent().height), 0.1f, 20.0f);
         mvp.proj[1][1] *= -1;
 
         void* data;
         data = triangleDevice.getLogicalDevice().mapMemory(triangleModel->getUniformBufferMemory(currentImage), 0, sizeof(mvp));
             memcpy(data, &mvp, sizeof(mvp));
         triangleDevice.getLogicalDevice().unmapMemory(triangleModel->getUniformBufferMemory(currentImage));
-
     }
 }
 

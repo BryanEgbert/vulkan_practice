@@ -15,13 +15,6 @@ TrianglePipeline::TrianglePipeline(TriangleDevice &device)
 
 TrianglePipeline::~TrianglePipeline()
 {
-    std::cout << ' ';
-    // device.getLogicalDevice().destroyShaderModule(fragShaderModule);
-    // device.getLogicalDevice().destroyShaderModule(vertShaderModule);
-}
-
-void TrianglePipeline::destroyShaderModule()
-{
     device.getLogicalDevice().destroyShaderModule(fragShaderModule);
     device.getLogicalDevice().destroyShaderModule(vertShaderModule);
 

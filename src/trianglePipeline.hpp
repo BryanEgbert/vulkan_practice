@@ -31,8 +31,6 @@ public:
     void createGraphicsPipeline(PipelineConfig &pipelineConfig, const char *vertFilePath, const char *fragFilePath);
     ~TrianglePipeline();
 
-    void destroyShaderModule();
-
     void bind(vk::CommandBuffer &commandBuffer);
 private:
 
