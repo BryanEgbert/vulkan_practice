@@ -37,8 +37,6 @@ public:
         std::vector<Vertex> vertices;
         std::vector<Index> indices;
         MVP mvp;
-        vk::Buffer vertexBuffer = VK_NULL_HANDLE, indexBuffer = VK_NULL_HANDLE;
-        vk::DeviceMemory vertexBufferMemory, indexBufferMemory;
 
         Mesh(std::vector<Vertex> &a_Vertices, std::vector<Index> &a_Indices) : vertices{a_Vertices}, indices{a_Indices} {};
     };
@@ -77,11 +75,11 @@ public:
     vk::DeviceMemory getUniformBufferMemory(int index) { return uniformBufferMemories[index]; };
     vk::DeviceSize getDynamicAlignment() { return dynamicAlignment; }
 
-    void bind(vk::CommandBuffer &commandBuffer, Mesh& mesh);
+    void bind(vk::CommandBuffer &commandBuffer, const vk::DeviceSize &vertexOffset, const vk::DeviceSize &indexOffset);
     void createUniformBuffers(const uint32_t bufferCount);
 
-    void allocVertexBuffer(Mesh &mesh);
-    void allocIndexBuffer(Mesh &mesh);
+    void allocVertexBuffer(const std::vector<std::vector<Vertex>>& a_Vertex);
+    void allocIndexBuffer(const std::vector<std::vector<Index>>& a_Index);
     
 private:
     TriangleDevice& device;
@@ -89,9 +87,11 @@ private:
     uint32_t uniformBufferCount = 0;
     vk::DeviceSize dynamicAlignment = 0;
 
+    vk::Buffer vertexBuffer = VK_NULL_HANDLE, indexBuffer = VK_NULL_HANDLE;
+    vk::DeviceMemory vertexBufferMemory, indexBufferMemory;
+
     std::vector<vk::Buffer> uniformBuffers;
     std::vector<vk::DeviceMemory> uniformBufferMemories;
-    std::vector<RenderModel> m_RenderModels;
 
     void* data;
 

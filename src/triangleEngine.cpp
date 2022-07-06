@@ -105,7 +105,9 @@ TriangleEngine::TriangleEngine()
                 continue;
                 
             currentCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, triangleDescriptor->getDescriptorSet(currentFrame), dynamicOffset);
-            triangleModel->bind(currentCommandBuffer, component->mesh);
+            triangleModel->bind(currentCommandBuffer, 
+                sizeof(component->mesh.vertices[0]) * component->mesh.vertices.size() * (entity.id - 1), 
+                sizeof(component->mesh.indices[0]) * component->mesh.indices.size() * (entity.id - 1));
 
             TriangleModel::MeshPushConstant push{};
             push.offset = {0.0f + (frame * 0.005f * entity.id * entity.id), 0.0f, 0.0f + (frame * 0.005f * entity.id * entity.id)};
@@ -186,18 +188,6 @@ void TriangleEngine::drawUI()
 
 void TriangleEngine::cleanup()
 {
-    for (auto &entity : ecs->getEntities())
-    {
-        if (auto component = ecs->getComponent<TriangleModel::RenderModel>(entity))
-        {
-            triangleDevice.getLogicalDevice().destroyBuffer(component->mesh.indexBuffer);
-            triangleDevice.getLogicalDevice().freeMemory(component->mesh.indexBufferMemory);
-
-            triangleDevice.getLogicalDevice().destroyBuffer(component->mesh.vertexBuffer);
-            triangleDevice.getLogicalDevice().freeMemory(component->mesh.vertexBufferMemory);
-        }
-    }
-
     triangleDevice.getLogicalDevice().destroyPipelineLayout(pipelineLayout);
     // trianglePipeline.destroyShaderModule();
 }
@@ -297,7 +287,6 @@ void TriangleEngine::createPipeline()
 
 void TriangleEngine::mvpSystem(uint32_t currentImage)
 {
-    TriangleModel::MVP mvp{};
     for (auto& entity : ecs->getEntities())
     {
         auto component = ecs->getComponent<TriangleModel::RenderModel>(entity);
@@ -308,31 +297,41 @@ void TriangleEngine::mvpSystem(uint32_t currentImage)
 
         glm::mat4 transform = glm::translate(glm::mat4{1.0f}, component->transform.position);
 
-        mvp.model = transform;
+        component->mesh.mvp.model = transform;
         
         cameraPos.x = sin(glfwGetTime()) * 10.0f;
         cameraPos.z = cos(glfwGetTime()) * 10.0f;
 
-        mvp.view = triangleCamera->getView();
+        component->mesh.mvp.view = triangleCamera->getView();
 
-        mvp.proj = glm::perspective(glm::radians(45.0f), triangleSwapchain.getExtent().width / static_cast<float>(triangleSwapchain.getExtent().height), 0.1f, 20.0f);
-        mvp.proj[1][1] *= -1;
+        component->mesh.mvp.proj = glm::perspective(glm::radians(45.0f), triangleSwapchain.getExtent().width / static_cast<float>(triangleSwapchain.getExtent().height), 0.1f, 20.0f);
+        component->mesh.mvp.proj[1][1] *= -1;
 
         void* data;
-        data = triangleDevice.getLogicalDevice().mapMemory(triangleModel->getUniformBufferMemory(currentImage), dynamicOffset, sizeof(mvp));
-            memcpy(data, &mvp, sizeof(mvp));
+        data = triangleDevice.getLogicalDevice().mapMemory(triangleModel->getUniformBufferMemory(currentImage), dynamicOffset, sizeof(component->mesh.mvp));
+        memcpy(data, &component->mesh.mvp, sizeof(component->mesh.mvp));
         triangleDevice.getLogicalDevice().unmapMemory(triangleModel->getUniformBufferMemory(currentImage));
     }
 }
 
 void TriangleEngine::initSceneSystem()
 {
-    for (const auto& entity : ecs->getEntities())
+    auto entities = ecs->getEntities();
+
+    std::vector<std::vector<TriangleModel::Vertex>> vertexList{};
+    vertexList.reserve(entities.size());
+
+    std::vector<std::vector<Index>> indexList{};
+    indexList.reserve(entities.size());
+
+    for (const auto& entity : entities)
     {
         if (auto component = ecs->getComponent<TriangleModel::RenderModel>(entity))
         {
-            triangleModel->allocVertexBuffer(component->mesh);
-            triangleModel->allocIndexBuffer(component->mesh);
+            vertexList.push_back(component->mesh.vertices);
+            indexList.push_back(component->mesh.indices);
         }
     }
+    triangleModel->allocVertexBuffer(vertexList);
+    triangleModel->allocIndexBuffer(indexList);
 }
