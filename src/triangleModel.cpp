@@ -105,7 +105,13 @@ void TriangleModel::createUniformBuffers(const uint32_t bufferCount)
 {
     uniformBufferCount = bufferCount;
 
-    vk::DeviceSize bufferSize = sizeof(MVP);
+    vk::DeviceSize minUboAlignment = device.getPhysicalDevice().getProperties().limits.minUniformBufferOffsetAlignment;
+    dynamicAlignment = sizeof(MVP);
+
+    if (minUboAlignment > 0)
+        dynamicAlignment = (dynamicAlignment + minUboAlignment - 1) &  ~(minUboAlignment - 1);
+
+    vk::DeviceSize bufferSize = dynamicAlignment * 2;
 
     uniformBuffers.resize(bufferCount);
     uniformBufferMemories.resize(bufferCount);

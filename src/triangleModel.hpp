@@ -75,6 +75,7 @@ public:
 
     std::vector<vk::Buffer> getUniformBuffers() { return uniformBuffers; };
     vk::DeviceMemory getUniformBufferMemory(int index) { return uniformBufferMemories[index]; };
+    vk::DeviceSize getDynamicAlignment() { return dynamicAlignment; }
 
     void bind(vk::CommandBuffer &commandBuffer, Mesh& mesh);
     void createUniformBuffers(const uint32_t bufferCount);
@@ -86,6 +87,7 @@ private:
     TriangleDevice& device;
 
     uint32_t uniformBufferCount = 0;
+    vk::DeviceSize dynamicAlignment = 0;
 
     std::vector<vk::Buffer> uniformBuffers;
     std::vector<vk::DeviceMemory> uniformBufferMemories;

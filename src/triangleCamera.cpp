@@ -35,6 +35,10 @@ void TriangleCamera::processCameraMovement()
         CameraProperties.cameraPos -= glm::normalize(glm::cross(CameraProperties.cameraFront, CameraProperties.cameraUp)) * camSpeed;
     if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
         CameraProperties.cameraPos += glm::normalize(glm::cross(CameraProperties.cameraFront, CameraProperties.cameraUp)) * camSpeed;
+    if (glfwGetKey(window, GLFW_KEY_SPACE) == GLFW_PRESS)
+        CameraProperties.cameraPos.y += camSpeed;
+    if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+        CameraProperties.cameraPos.y -= camSpeed;
 }
 
 void TriangleCamera::processCameraRotation(const float sensitivity)

@@ -45,7 +45,7 @@ TriangleEngine::TriangleEngine()
     // Adding entity
     TriangleModel::Mesh cubeMesh = TriangleModel::Mesh(cubeVertices, cubeIndices), squareMesh = TriangleModel::Mesh(squareVertices, squareIndices);
     TriangleModel::Transform cubeTransform, squareTransform;
-    squareTransform.position = glm::vec3(5.f, 5.f, 5.f);
+    squareTransform.position = glm::vec3(2.f, 2.f, 2.f);
 
     TriangleModel::RenderModel cubeModel = TriangleModel::RenderModel(cubeMesh, cubeTransform), 
                                squareModel = TriangleModel::RenderModel(squareMesh, squareTransform);
@@ -70,6 +70,7 @@ TriangleEngine::TriangleEngine()
     initSceneSystem();
 
     uint32_t currentFrame = 0, imageIndex;
+    vk::DeviceSize dynamicOffset = 0;
 
     // Main loop
     while (!triangleWindow.shouldClose())
@@ -93,16 +94,17 @@ TriangleEngine::TriangleEngine()
 
         trianglePipeline.bind(currentCommandBuffer);
 
-        currentCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, triangleDescriptor->getDescriptorSet(currentFrame), nullptr);
         mvpSystem(triangleRenderer->getCurrentFrame());
 
         for (const auto &entity : ecs->getEntities())
         {
             auto component = ecs->getComponent<TriangleModel::RenderModel>(entity);
+            dynamicOffset = (entity.id - 1) * triangleModel->getDynamicAlignment();
 
             if (component == nullptr)
                 continue;
                 
+            currentCommandBuffer.bindDescriptorSets(vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, triangleDescriptor->getDescriptorSet(currentFrame), dynamicOffset);
             triangleModel->bind(currentCommandBuffer, component->mesh);
 
             TriangleModel::MeshPushConstant push{};
@@ -110,7 +112,6 @@ TriangleEngine::TriangleEngine()
             push.color = {0.0f, 0.0f + (frame * 0.005f), 0.0f + (frame * 0.0025f)};
 
             currentCommandBuffer.pushConstants<TriangleModel::MeshPushConstant>(pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, push);
-
 
             currentCommandBuffer.drawIndexed(static_cast<uint32_t>(component->mesh.indices.size()), 1, 0, 0, 0);
         }
@@ -132,11 +133,12 @@ void TriangleEngine::drawUI()
     char entityID[50];
     for (const auto& entity : ecs->getEntities())
     {
+        auto component = ecs->getComponent<TriangleModel::RenderModel>(entity);
+        if (component == nullptr) continue;
+
         sprintf(entityID, "Entity %d", entity.id);
         if (ImGui::Begin(entityID))
         {
-            auto component = ecs->getComponent<TriangleModel::RenderModel>(entity);
-            if (component == nullptr) continue;
 
             // ImGui::BeginGroup();
 
@@ -162,6 +164,12 @@ void TriangleEngine::drawUI()
         ImGui::Text("Cam direction: (%f, %f, %f)", cameraProperty.direction.x, cameraProperty.direction.y, cameraProperty.direction.z);
 
         ImGui::EndGroup();
+        ImGui::End();
+    }
+
+    if (ImGui::Begin("Device Properties"))
+    {
+        ImGui::Text("UBO dynamic offset: %d", triangleModel->getDynamicAlignment());
         ImGui::End();
     }
 
@@ -296,6 +304,8 @@ void TriangleEngine::mvpSystem(uint32_t currentImage)
 
         if (component == nullptr) continue;
 
+        vk::DeviceSize dynamicOffset = (entity.id - 1) * triangleModel->getDynamicAlignment();
+
         glm::mat4 transform = glm::translate(glm::mat4{1.0f}, component->transform.position);
 
         mvp.model = transform;
@@ -309,7 +319,7 @@ void TriangleEngine::mvpSystem(uint32_t currentImage)
         mvp.proj[1][1] *= -1;
 
         void* data;
-        data = triangleDevice.getLogicalDevice().mapMemory(triangleModel->getUniformBufferMemory(currentImage), 0, sizeof(mvp));
+        data = triangleDevice.getLogicalDevice().mapMemory(triangleModel->getUniformBufferMemory(currentImage), dynamicOffset, sizeof(mvp));
             memcpy(data, &mvp, sizeof(mvp));
         triangleDevice.getLogicalDevice().unmapMemory(triangleModel->getUniformBufferMemory(currentImage));
     }

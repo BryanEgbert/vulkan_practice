@@ -20,7 +20,7 @@ TriangleDescriptor::~TriangleDescriptor()
 void TriangleDescriptor::createDescriptorPool()
 {
     std::vector<vk::DescriptorPoolSize> poolSize;
-    poolSize.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBuffer, descriptorCount));
+    poolSize.push_back(vk::DescriptorPoolSize(vk::DescriptorType::eUniformBufferDynamic, descriptorCount));
 
     vk::DescriptorPoolCreateInfo descriptorPoolCreateInfo(
         vk::DescriptorPoolCreateFlags(),
@@ -34,12 +34,11 @@ void TriangleDescriptor::createDescriptorPool()
 void TriangleDescriptor::createDescriptorSetLayout()
 {
     std::vector<vk::DescriptorSetLayoutBinding> descSetLayoutBindings;
-
-    descSetLayoutBindings.push_back(
-        vk::DescriptorSetLayoutBinding(
-            0, vk::DescriptorType::eUniformBuffer, 1, vk::ShaderStageFlagBits::eVertex, nullptr
-        )
+    vk::DescriptorSetLayoutBinding cameraSetLayout = vk::DescriptorSetLayoutBinding(
+        0, vk::DescriptorType::eUniformBufferDynamic, 1, vk::ShaderStageFlagBits::eVertex, nullptr
     );
+
+    descSetLayoutBindings.push_back(cameraSetLayout);
 
     vk::DescriptorSetLayoutCreateInfo layoutCreateInfo(
         vk::DescriptorSetLayoutCreateFlags(),
@@ -76,7 +75,7 @@ void TriangleDescriptor::createDescriptorSets(const std::vector<vk::Buffer>& buf
                 descriptorSets[i],
                 0, 
                 0, 
-                vk::DescriptorType::eUniformBuffer, 
+                vk::DescriptorType::eUniformBufferDynamic, 
                 {}, 
                 bufferInfos[i]
             )
