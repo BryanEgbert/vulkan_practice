@@ -133,27 +133,27 @@ void TriangleEngine::drawUI()
     float velocity = 0.25f;
     // ImGui::DockSpaceOverViewport(ImGui::GetMainViewport());
     char entityID[50];
-    for (const auto& entity : ecs->getEntities())
-    {
-        auto component = ecs->getComponent<TriangleModel::RenderModel>(entity);
-        if (component == nullptr) continue;
 
-        sprintf(entityID, "Entity %d", entity.id);
-        if (ImGui::Begin(entityID))
+    if (ImGui::Begin("Entity"))
+    {
+        for (const auto &entity : ecs->getEntities())
         {
+            sprintf(entityID, "Entity %d", entity.id);
+            auto component = ecs->getComponent<TriangleModel::RenderModel>(entity);
+            if (component == nullptr) continue;
 
             // ImGui::BeginGroup();
-
+            ImGui::BeginChild(entityID, ImVec2(0, 100.f), true);
             ImGui::Text("Entity ID: %d\nTransform component: %p", entity.id, std::addressof(component->transform.position));
             ImGui::Text("translation: (%.3f, %.3f, %.3f)", component->transform.position.x, component->transform.position.y, component->transform.position.z);
             // ImGui::SliderFloat("pos x", &component->transform.position.x, 0.f, 10.0f);
             // ImGui::SliderFloat("pos y", &component->transform.position.y, 0.f, 10.0f);
             // ImGui::SliderFloat("pos z", &component->transform.position.z, 0.f, 10.0f);
             ImGui::SliderFloat3("position", &(component->transform.position.x), 0.f, 10.f);
-
-            // ImGui::EndGroup();
-            ImGui::End();
+            ImGui::EndChild();
         }
+        
+        ImGui::End();
     }
 
     if (ImGui::Begin("Camera"))
