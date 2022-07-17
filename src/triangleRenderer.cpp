@@ -14,11 +14,8 @@ namespace triangle
     Renderer::Renderer(TriangleDevice &device, TriangleSwapchain &swapchain, TriangleUI &ui)
         : device{device}, swapchain{swapchain}, ui{ui}
     {
-        // std::cout << "cmd buffer before: " << commandBuffers[0] << "IS NULL: " << commandBuffers[0] << '\n';
         commandBuffers.resize(swapchain.MAX_FRAMES_IN_FLIGHT);
-
         createCommandBuffer();
-        std::cout << "cmd buffer: " << commandBuffers[0] << "IS NULL: " << commandBuffers[0] << '\n';
     }
 
     Renderer::~Renderer()

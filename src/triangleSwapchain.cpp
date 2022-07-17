@@ -38,25 +38,20 @@ TriangleSwapchain::~TriangleSwapchain()
         device.getLogicalDevice().destroyFence(inFlightFences[i]);
     }
 
-
-    std::cout << "Destroying framebuffers...\n";
     for (int i = 0; i < imageViews.size(); ++i)
     {
         device.getLogicalDevice().destroyFramebuffer(mainFrameBuffers[i]);
         device.getLogicalDevice().destroyFramebuffer(uiFrameBuffers[i]);
     }
     
-    std::cout << "Destroying render pass...\n";
     device.getLogicalDevice().destroyRenderPass(mainRenderPass);
     device.getLogicalDevice().destroyRenderPass(uiRenderPass);
 
-    std::cout << "Destroying image views...\n";
     for (auto& imageView : imageViews)
     {
         device.getLogicalDevice().destroyImageView(imageView);
     }
 
-    std::cout << "Destroying swapchain...\n";
     device.getLogicalDevice().destroySwapchainKHR(swapchain);
 }
 

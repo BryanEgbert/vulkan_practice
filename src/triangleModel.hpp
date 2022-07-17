@@ -10,7 +10,7 @@
 #include <string>
 #include <optional>
 
-using Index = uint16_t;
+using Index = uint32_t;
 
 class TriangleModel
 {

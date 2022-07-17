@@ -14,7 +14,7 @@
 #include <memory>
 #include <vector>
 
-using Index = uint16_t;
+using Index = uint32_t;
 
 class TriangleEngine
 {
@@ -22,9 +22,10 @@ public:
     static constexpr int WIDTH = 1920;
     static constexpr int HEIGHT = 1280;
 
-    TriangleEngine();
+    ~TriangleEngine();
 
-    void cleanup();
+    void run();
+
 private:
     std::vector<TriangleModel::Vertex> squareVertices = {
         {{-0.5f, -0.5f, 0.0f}, {0.5f, 0.0f, 0.0f}},
@@ -66,11 +67,11 @@ private:
         {{-0.5f, 0.5f, 0.5f}, {0.6f, 0.2f, 0.5f}},
     };
 
-    std::vector<uint16_t> squareIndices = {
+    std::vector<Index> squareIndices = {
         0, 1, 2, 2, 3, 0
     };
 
-    std::vector<uint16_t> cubeIndices = {
+    std::vector<Index> cubeIndices = {
         0, 1, 2, 2, 3, 0, 
         4, 5, 6, 6, 7, 4, 
         8, 9, 10, 10, 11, 8, 
@@ -79,25 +80,30 @@ private:
         20, 21, 22, 22, 23, 20
     };
 
+    uint32_t currentFrame = 0, imageIndex;
+    vk::DeviceSize dynamicOffset = 0;
+    glm::vec3 cameraPos = glm::vec3(0.f, 0.f, 2.f);
+
     TriangleWindow triangleWindow{WIDTH, HEIGHT, "Vulkan"};
     TriangleDevice triangleDevice{"vulkan basic", triangleWindow};
     TriangleSwapchain triangleSwapchain{triangleDevice};
     TriangleUI triangleUI{triangleDevice, triangleWindow, triangleSwapchain};
     TrianglePipeline trianglePipeline{triangleDevice};
-
-    std::unique_ptr<triangle::Renderer> triangleRenderer;
+    triangle::ECS ecs;
 
     vk::PipelineLayout pipelineLayout;
+    
+    std::unique_ptr<triangle::Renderer> triangleRenderer;
     std::unique_ptr<TriangleModel> triangleModel;
     std::unique_ptr<TriangleDescriptor> triangleDescriptor;
     std::unique_ptr<TriangleCamera> triangleCamera;
-    std::unique_ptr<triangle::ECS> ecs;
 
-    glm::vec3 cameraPos = glm::vec3(0.f, 0.f, 2.f);
-
-    void drawUI();
     void createPipelineLayout();
     void createPipeline();
-    void mvpSystem(uint32_t currentImage);
+
     void initSceneSystem();
+    void mvpSystem(uint32_t currentImage);
+    void renderSystem(uint32_t currentImage, vk::CommandBuffer &currentCommandBuffer);
+
+    void drawUI();
 };

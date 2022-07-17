@@ -108,15 +108,6 @@ void TriangleDevice::createBuffer(vk::DeviceSize size, vk::BufferUsageFlags usag
 
     buffer = device.createBuffer(bufferCreateInfo);
 
-    std::cout << "Memory Type Count: "<< memProperties.memoryTypeCount << '\n'
-              << "Memory Heap Count: "<< memProperties.memoryHeapCount << '\n';
-
-    for (int i = 0; i < memProperties.memoryTypeCount; ++i)
-    {
-        std::cout << "Memory heap " << i << ": " << vk::to_string(memProperties.memoryHeaps[i].flags) << '\n'
-                  << "Memory type " << i << ": " << vk::to_string(memProperties.memoryTypes[i].propertyFlags) << "\tHeap index: " << memProperties.memoryTypes[i].heapIndex << '\n';
-    }
-
     memRequirements = device.getBufferMemoryRequirements(buffer);
 
     vk::MemoryAllocateInfo allocInfo(
@@ -219,13 +210,6 @@ void TriangleDevice::createDevice()
     physicalDevice = instance.enumeratePhysicalDevices().front();
 
     std::vector<vk::QueueFamilyProperties> queueFamilyProperties = physicalDevice.getQueueFamilyProperties();
-
-    for (auto queue : queueFamilyProperties)
-    {
-        std::cout << "Queue count: " << queue.queueCount << '\t'
-                  << "timestamp valid bits: " << queue.timestampValidBits << '\t'
-                  << vk::to_string(queue.queueFlags) << '\n';
-    }
 
     auto propertyIterator = std::find_if(queueFamilyProperties.begin(), queueFamilyProperties.end(), 
         [](vk::QueueFamilyProperties const& qfp) { return qfp.queueFlags & vk::QueueFlagBits::eGraphics; });

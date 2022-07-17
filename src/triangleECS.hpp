@@ -19,9 +19,7 @@ namespace triangle
 	struct Entity
 	{
 		Entity() : id{++g_EntityID}
-		{
-			std::cout << "construct new entity\n";
-		};
+		{};
 
 		EntityID id;
 
@@ -66,8 +64,6 @@ namespace triangle
 			{
 				if (a_Entity == entity)
 				{
-					// ComponentID compID = ++g_ComponentID;
-
 					g_Components<T>.insert({a_Entity.id, a_Component});
 
 					return true;

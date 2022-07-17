@@ -6,9 +6,11 @@
 
 int main(int, char**) 
 {
+    TriangleEngine engine;
+
     try 
     {
-        TriangleEngine engine;
+        engine.run();
     } 
     catch (const std::exception& e) 
     {
