@@ -33,6 +33,8 @@ public:
     vk::Semaphore getPresentSemaphore(int index) { return imageAvailableSemaphore[index]; };
     uint32_t getMinImageCount() { return swapChainSupportDetails.capabilities.minImageCount + 1; };
 
+    void recreateSwapchain();
+
 private:
     TriangleDevice& device;
     const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
@@ -74,6 +76,9 @@ private:
 
     void createImage(vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image& image, vk::DeviceMemory& imageMemory);
     void createImageView(vk::Image& image, vk::ImageView& imageView, vk::Format& format, vk::ImageAspectFlags aspectFlags);
+
+    void cleanupSwapchain();
+    
     vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
     vk::Format findDepthFormat();
 };

@@ -36,7 +36,15 @@ namespace triangle
 
     void Renderer::beginCommandBuffer()
     {
-        swapchain.acquireNextImage(&imageIndex, currentFrame);
+        vk::Result result = swapchain.acquireNextImage(&imageIndex, currentFrame);
+
+        if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR)
+        {
+            swapchain.recreateSwapchain();
+            return;
+        }
+        else if (result != vk::Result::eSuccess)
+            throw std::runtime_error("Failed to recreate swapchain image");
 
         ui.renderFrame(imageIndex, currentFrame);
 
@@ -88,7 +96,10 @@ namespace triangle
 
         vk::PresentInfoKHR presentInfo(signalSemaphore, swapchains, imageIndex);
 
-        if (device.getPresentQueue().presentKHR(presentInfo) != vk::Result::eSuccess)
+        vk::Result result = device.getPresentQueue().presentKHR(presentInfo);
+        if (result == vk::Result::eErrorOutOfDateKHR || result == vk::Result::eSuboptimalKHR)
+            swapchain.recreateSwapchain();
+        if (result != vk::Result::eSuccess)
             throw std::runtime_error("Something's wrong when presenting");
 
         currentFrame = (currentFrame + 1) % swapchain.MAX_FRAMES_IN_FLIGHT;

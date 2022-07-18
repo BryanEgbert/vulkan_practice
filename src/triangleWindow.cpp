@@ -10,6 +10,12 @@ TriangleWindow::TriangleWindow(int width, int height, const char* name)
     initGlfwExtensions();
 }
 
+TriangleWindow::~TriangleWindow()
+{
+    glfwDestroyWindow(window);
+    glfwTerminate();
+}
+
 void TriangleWindow::initWindow()
 {
     glfwInit();
@@ -18,17 +24,11 @@ void TriangleWindow::initWindow()
     GLFWmonitor** monitors = glfwGetMonitors(&count);
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-    window = glfwCreateWindow(width, height, windowName, monitors[0], nullptr);
+    window = glfwCreateWindow(width, height, windowName, nullptr, nullptr);
     
     glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
-}
-
-TriangleWindow::~TriangleWindow()
-{
-    glfwDestroyWindow(window);
-    glfwTerminate();
+    glfwSetWindowUserPointer(window, this);
 }
 
 void TriangleWindow::initGlfwExtensions()

@@ -6,7 +6,6 @@
 #include "triangleSwapchain.hpp"
 #include "triangleUI.hpp"
 #include "triangleRenderer.hpp"
-#include "vulkan/vulkan_enums.hpp"
 
 #include <GLFW/glfw3.h>
 #include <imgui/imgui_impl_glfw.h>
@@ -21,6 +20,8 @@
 #include <glm/detail/qualifier.hpp>
 #include <glm/ext/matrix_transform.hpp>
 #include <glm/trigonometric.hpp>
+
+#include <vulkan/vulkan.hpp>
 
 #include <array>
 #include <cstring>
@@ -88,10 +89,17 @@ void TriangleEngine::run()
         triangleRenderer->beginCommandBuffer();
         triangleRenderer->beginRenderPass();
 
-        auto currentCommandBuffer = triangleRenderer->getCurrentCommandBuffer();
+            auto currentCommandBuffer = triangleRenderer->getCurrentCommandBuffer();
 
-        // mvpSystem(triangleRenderer->getCurrentFrame());
-        renderSystem(triangleRenderer->getCurrentFrame(), currentCommandBuffer);
+            trianglePipeline.bind(currentCommandBuffer);
+
+            vk::Viewport viewport(0.0f, 0.0f, static_cast<float>(triangleSwapchain.getExtent().width), static_cast<float>(triangleSwapchain.getExtent().height), 0.0f, 1.0f);
+            currentCommandBuffer.setViewport(0, viewport);
+
+            vk::Rect2D scissor({0, 0}, triangleSwapchain.getExtent());
+            currentCommandBuffer.setScissor(0, scissor);
+
+            renderSystem(triangleRenderer->getCurrentFrame(), currentCommandBuffer);
 
         triangleRenderer->endRenderpass();
         triangleRenderer->endCommandBuffer();
@@ -123,9 +131,8 @@ void TriangleEngine::drawUI()
             ImGui::SliderFloat3("position", &(component->transform.position.x), 0.f, 10.f);
             ImGui::EndChild();
         }
-        
-        ImGui::End();
     }
+    ImGui::End();
 
     if (ImGui::Begin("Camera"))
     {
@@ -137,22 +144,22 @@ void TriangleEngine::drawUI()
         ImGui::Text("Cam direction: (%f, %f, %f)", cameraProperty.direction.x, cameraProperty.direction.y, cameraProperty.direction.z);
 
         ImGui::EndGroup();
-        ImGui::End();
     }
+    ImGui::End();
 
     if (ImGui::Begin("Device Properties"))
     {
         ImGui::Text("UBO dynamic offset: %d", triangleModel->getDynamicAlignment());
-        ImGui::End();
     }
+    ImGui::End();
 
     if (ImGui::Begin("Scene"))
     {
         // ImGui::Text("Camera");
 
         // ImGui::Image(ImTextureID user_texture_id, const ImVec2 &size)
-        ImGui::End();
     }
+    ImGui::End();
 
     ImGui::ShowDemoWindow();
 }
@@ -178,13 +185,15 @@ void TriangleEngine::createPipelineLayout()
 
 void TriangleEngine::createPipeline()
 {
-    vk::Viewport viewport(0.0f, 0.0f, (float)triangleSwapchain.getExtent().width, (float)triangleSwapchain.getExtent().height, 0.0f, 1.0f);
-    vk::Rect2D scissor({0, 0}, triangleSwapchain.getExtent());
+    auto extent = triangleSwapchain.getExtent();
+    vk::Viewport viewport(0.0f, 0.0f, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0f, 1.0f);
+    vk::Rect2D scissor({0, 0}, extent);
 
-    vk::ColorComponentFlags colorComponentFlags( vk::ColorComponentFlagBits::eR | 
-                                            vk::ColorComponentFlagBits::eG | 
-                                            vk::ColorComponentFlagBits::eB | 
-                                            vk::ColorComponentFlagBits::eA);
+    vk::ColorComponentFlags colorComponentFlags(vk::ColorComponentFlagBits::eR | 
+                                                vk::ColorComponentFlagBits::eG | 
+                                                vk::ColorComponentFlagBits::eB | 
+                                                vk::ColorComponentFlagBits::eA);
+
     vk::PipelineColorBlendAttachmentState colorBlendAttachmentState(
         false, 
         vk::BlendFactor::eOne, 
@@ -194,6 +203,8 @@ void TriangleEngine::createPipeline()
         vk::BlendFactor::eZero,
         vk::BlendOp::eAdd, 
         colorComponentFlags);
+
+    std::vector<vk::DynamicState> dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
 
     TrianglePipeline::PipelineConfig pipelineConfig{
         TriangleModel::Vertex::getBindingDesciptions(),
@@ -242,48 +253,19 @@ void TriangleEngine::createPipeline()
             colorBlendAttachmentState,
             {{1.0f, 1.0f, 1.0f, 1.0f}}
         ),
-        std::nullopt,
+        vk::PipelineDynamicStateCreateInfo(
+            vk::PipelineDynamicStateCreateFlags(),
+            dynamicStates
+        ),
         pipelineLayout,
         triangleSwapchain.getMainRenderPass()
     };
 
-    trianglePipeline.createGraphicsPipeline(pipelineConfig, "shaders/vert.spv", "shaders/frag.spv");
-}
-
-void TriangleEngine::mvpSystem(uint32_t currentImage)
-{
-    for (auto& entity : ecs.getEntities())
-    {
-        auto component = ecs.getComponent<TriangleModel::RenderModel>(entity);
-
-        if (component == nullptr) continue;
-
-        // vk::DeviceSize dynamicOffset = (entity.id - 1) * triangleModel->getDynamicAlignment();
-
-        // glm::mat4 transform = glm::translate(glm::mat4{1.0f}, component->transform.position);
-
-        // component->mesh.mvp.model = transform;
-        
-        // cameraPos.x = sin(glfwGetTime()) * 10.0f;
-        // cameraPos.z = cos(glfwGetTime()) * 10.0f;
-
-        // // auto extent = triangleSwapchain.getExtent();
-
-        // component->mesh.mvp.view = triangleCamera->getView();
-        // component->mesh.mvp.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(triangleSwapchain.getExtent().width / triangleSwapchain.getExtent().height), 0.1f, 20.0f);
-        // component->mesh.mvp.proj[1][1] *= -1;
-
-        // void* data;
-        // data = triangleDevice.getLogicalDevice().mapMemory(triangleModel->getUniformBufferMemory(currentImage), dynamicOffset, sizeof(component->mesh.mvp));
-        // memcpy(data, &component->mesh.mvp, sizeof(component->mesh.mvp));
-        // triangleDevice.getLogicalDevice().unmapMemory(triangleModel->getUniformBufferMemory(currentImage));
-    }
+    trianglePipeline.createGraphicsPipeline(pipelineConfig, "../shaders/vert.spv", "../shaders/frag.spv");
 }
 
 void TriangleEngine::renderSystem(uint32_t currentImage, vk::CommandBuffer& currentCommandBuffer)
 {
-    trianglePipeline.bind(currentCommandBuffer);
-
     vk::DeviceSize dynamicOffset = 0;
     for (const auto &entity : ecs.getEntities())
     {
@@ -293,15 +275,15 @@ void TriangleEngine::renderSystem(uint32_t currentImage, vk::CommandBuffer& curr
             dynamicOffset = (entity.id - 1) * triangleModel->getDynamicAlignment();
             glm::mat4 transform = glm::translate(glm::mat4{1.0f}, component->transform.position);
 
-            component->mesh.mvp.model = transform;
-
             cameraPos.x = sin(glfwGetTime()) * 10.0f;
             cameraPos.z = cos(glfwGetTime()) * 10.0f;
 
-            // auto extent = triangleSwapchain.getExtent();
+            auto extent = triangleSwapchain.getExtent();
 
+            component->mesh.mvp.model = transform;
             component->mesh.mvp.view = triangleCamera->getView();
-            component->mesh.mvp.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(triangleSwapchain.getExtent().width / triangleSwapchain.getExtent().height), 0.1f, 20.0f);
+            component->mesh.mvp.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(extent.width / extent.height), 0.1f, 20.0f);
+
             component->mesh.mvp.proj[1][1] *= -1;
 
             void *data;

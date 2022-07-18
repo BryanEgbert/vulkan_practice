@@ -28,6 +28,22 @@ TriangleSwapchain::TriangleSwapchain(TriangleDevice& device) : device{device}
 
 TriangleSwapchain::~TriangleSwapchain()
 {
+    cleanupSwapchain();
+}
+
+void TriangleSwapchain::recreateSwapchain()
+{
+    device.getLogicalDevice().waitIdle();
+
+    cleanupSwapchain();
+
+    createSwapchain();
+    createImageViews();
+    createFrameBuffers();
+}
+
+void TriangleSwapchain::cleanupSwapchain()
+{
     device.getLogicalDevice().destroyImageView(depthImageView);
     device.getLogicalDevice().destroyImage(depthImage);
     device.getLogicalDevice().freeMemory(depthImageMemory);
@@ -43,11 +59,11 @@ TriangleSwapchain::~TriangleSwapchain()
         device.getLogicalDevice().destroyFramebuffer(mainFrameBuffers[i]);
         device.getLogicalDevice().destroyFramebuffer(uiFrameBuffers[i]);
     }
-    
+
     device.getLogicalDevice().destroyRenderPass(mainRenderPass);
     device.getLogicalDevice().destroyRenderPass(uiRenderPass);
 
-    for (auto& imageView : imageViews)
+    for (auto &imageView : imageViews)
     {
         device.getLogicalDevice().destroyImageView(imageView);
     }

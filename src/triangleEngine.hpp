@@ -20,7 +20,7 @@ class TriangleEngine
 {
 public:    
     static constexpr int WIDTH = 1920;
-    static constexpr int HEIGHT = 1280;
+    static constexpr int HEIGHT = 1080;
 
     ~TriangleEngine();
 

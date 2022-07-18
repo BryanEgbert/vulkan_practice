@@ -27,7 +27,8 @@ TriangleDevice::~TriangleDevice()
     device.destroyCommandPool(mainCommandPool);
     device.destroy();
     instance.destroySurfaceKHR(surface);    
-    instance.destroyDebugUtilsMessengerEXT(debugUtilsMessenger);
+    if (enableValidationLayers)
+        instance.destroyDebugUtilsMessengerEXT(debugUtilsMessenger);
     instance.destroy();
 }
 
@@ -184,7 +185,6 @@ void TriangleDevice::createInstance()
     }
 
     std::vector<const char*> instanceExtensions(window.glfwExtensions, window.glfwExtensions + window.glfwExtensionCount);
-    instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
 
     vk::ApplicationInfo appInfo(appName, 1, "No Engine", 1, VK_API_VERSION_1_3);
 
@@ -195,14 +195,25 @@ void TriangleDevice::createInstance()
                                                         vk::DebugUtilsMessageTypeFlagBitsEXT::ePerformance |
                                                         vk::DebugUtilsMessageTypeFlagBitsEXT::eValidation);
 
+
+    vk::InstanceCreateInfo instanceCreateInfo({}, &appInfo, {}, instanceExtensions);
+
     vk::DebugUtilsMessengerCreateInfoEXT debugMessengerCreateInfo(
         {}, severityFlags, messageTypeFlags, &TriangleDevice::debugMessageFunc);
 
-    vk::InstanceCreateInfo instanceCreateInfo(
-        {}, &appInfo, validationLayers, instanceExtensions, (VkDebugUtilsMessengerCreateInfoEXT*)&debugMessengerCreateInfo);
+    if (enableValidationLayers)
+    {
+        instanceExtensions.push_back(VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
+
+        instanceCreateInfo.setPEnabledLayerNames(validationLayers);
+        instanceCreateInfo.setPEnabledExtensionNames(instanceExtensions);
+        instanceCreateInfo.setPNext(reinterpret_cast<VkDebugUtilsMessengerCreateInfoEXT *>(&debugMessengerCreateInfo));
+    }
+
     instance = vk::createInstance(instanceCreateInfo);
 
-    TriangleDevice::createDebugMessenger(debugMessengerCreateInfo);
+    if (enableValidationLayers)
+        TriangleDevice::createDebugMessenger(debugMessengerCreateInfo);
 }
 
 void TriangleDevice::createDevice()
@@ -216,7 +227,6 @@ void TriangleDevice::createDevice()
 
     queueFamilyIndex.graphics = static_cast<uint32_t>(std::distance(queueFamilyProperties.begin(), propertyIterator));
     assert( queueFamilyIndex.graphics < queueFamilyProperties.size() );
-    std::cout << "graphics queue family index: " << queueFamilyIndex.graphics << '\n';
 
     queueFamilyIndex.present = physicalDevice.getSurfaceSupportKHR( static_cast<uint32_t>( queueFamilyIndex.graphics ), surface )
                                 ? queueFamilyIndex.graphics
@@ -254,7 +264,13 @@ void TriangleDevice::createDevice()
     vk::PhysicalDeviceFeatures deviceFeatures;
 
     vk::DeviceQueueCreateInfo deviceQueueCreateInfo(vk::DeviceQueueCreateFlags(), queueFamilyIndex.graphics, 1, &queuePriority);
-    device = physicalDevice.createDevice(vk::DeviceCreateInfo(vk::DeviceCreateFlags(), deviceQueueCreateInfo, validationLayers, deviceExtensions, &deviceFeatures));
+
+    vk::DeviceCreateInfo deviceCreateInfo = vk::DeviceCreateInfo(vk::DeviceCreateFlags(), deviceQueueCreateInfo, {}, deviceExtensions, &deviceFeatures);
+    if (enableValidationLayers)
+    {
+        deviceCreateInfo.setPEnabledLayerNames(validationLayers);
+    }
+    device = physicalDevice.createDevice(deviceCreateInfo);
 
     graphicsQueue = device.getQueue(queueFamilyIndex.graphics, 0);
     presentQueue = device.getQueue(queueFamilyIndex.present, 0);

@@ -81,4 +81,10 @@ private:
     void createDebugMessenger(vk::DebugUtilsMessengerCreateInfoEXT& debugMessengerCreateInfo);
     static bool checkRequiredLayers(const std::vector<const char*>& instanceLayers);
     void querySwapchainSupport();
+
+    #ifdef NDEBUG
+        const bool enableValidationLayers = false;
+    #else
+        const bool enableValidationLayers = true;
+    #endif
 };
