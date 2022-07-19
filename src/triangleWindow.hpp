@@ -15,19 +15,25 @@ public:
     uint32_t glfwExtensionCount = 0;
     const char** glfwExtensions;
 
-    bool shouldClose() { return glfwWindowShouldClose(window); };
+    bool shouldClose() { return glfwWindowShouldClose(window); }
     void createSurface(VkInstance instance, VkSurfaceKHR* surface);
-    void getFrameBufferSize(int* width, int* height) { return glfwGetFramebufferSize(window, width, height); };
+    void getFrameBufferSize(int* width, int* height) { return glfwGetFramebufferSize(window, width, height); }
+
+    bool isWindowResized() { return isFrameBufferResized; }
+    void resetWindowResizeFlag() { isFrameBufferResized = false; }
+
     GLFWwindow* getWindow() { return window; };
 
 private:
-    const int width;
-    const int height;
+    int width, height;
 
     const char* windowName;
+    bool isFrameBufferResized = false;
 
     GLFWwindow* window;
 
     void initWindow();
     void initGlfwExtensions();
+
+    static void frameBufferResizeCallback(GLFWwindow *window, int width, int height);
 };

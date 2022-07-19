@@ -28,22 +28,6 @@ TriangleSwapchain::TriangleSwapchain(TriangleDevice& device) : device{device}
 
 TriangleSwapchain::~TriangleSwapchain()
 {
-    cleanupSwapchain();
-}
-
-void TriangleSwapchain::recreateSwapchain()
-{
-    device.getLogicalDevice().waitIdle();
-
-    cleanupSwapchain();
-
-    createSwapchain();
-    createImageViews();
-    createFrameBuffers();
-}
-
-void TriangleSwapchain::cleanupSwapchain()
-{
     device.getLogicalDevice().destroyImageView(depthImageView);
     device.getLogicalDevice().destroyImage(depthImage);
     device.getLogicalDevice().freeMemory(depthImageMemory);
@@ -72,9 +56,9 @@ void TriangleSwapchain::cleanupSwapchain()
 }
 
 void TriangleSwapchain::querySwapchainSupport()
-{  
+{
     std::vector<vk::ExtensionProperties> extensionProperties = device.getPhysicalDevice().enumerateDeviceExtensionProperties();
-    for (const auto& prop : extensionProperties)
+    for (const auto &prop : extensionProperties)
     {
         if (strcmp(VK_KHR_SWAPCHAIN_EXTENSION_NAME, prop.extensionName) == 0)
             return;
@@ -87,28 +71,6 @@ void TriangleSwapchain::querySwapchainSupport()
 void TriangleSwapchain::initSurfaceProperties()
 {
     swapChainSupportDetails.capabilities = device.getPhysicalDevice().getSurfaceCapabilitiesKHR(device.getSurface());
-    std::cout << "Capabilities:\n";
-    std::cout << "\t"
-              << "currentExtent           = " << swapChainSupportDetails.capabilities.currentExtent.width << " x " << swapChainSupportDetails.capabilities.currentExtent.height << "\n";
-    std::cout << "\t"
-              << "currentTransform        = " << vk::to_string( swapChainSupportDetails.capabilities.currentTransform ) << "\n";
-    std::cout << "\t"
-              << "maxImageArrayLayers     = " << swapChainSupportDetails.capabilities.maxImageArrayLayers << "\n";
-    std::cout << "\t"
-              << "maxImageCount           = " << swapChainSupportDetails.capabilities.maxImageCount << "\n";
-    std::cout << "\t"
-              << "maxImageExtent          = " << swapChainSupportDetails.capabilities.maxImageExtent.width << " x " << swapChainSupportDetails.capabilities.maxImageExtent.height << "\n";
-    std::cout << "\t"
-              << "minImageCount           = " << swapChainSupportDetails.capabilities.minImageCount << "\n";
-    std::cout << "\t"
-              << "minImageExtent          = " << swapChainSupportDetails.capabilities.minImageExtent.width << " x " << swapChainSupportDetails.capabilities.minImageExtent.height << "\n";
-    std::cout << "\t"
-              << "supportedCompositeAlpha = " << vk::to_string( swapChainSupportDetails.capabilities.supportedCompositeAlpha ) << "\n";
-    std::cout << "\t"
-              << "supportedTransforms     = " << vk::to_string( swapChainSupportDetails.capabilities.supportedTransforms ) << "\n";
-    std::cout << "\t"
-              << "supportedUsageFlags     = " << vk::to_string( swapChainSupportDetails.capabilities.supportedUsageFlags ) << "\n";
-    std::cout << "\n";
 
     uint32_t width, height;
     if (swapChainSupportDetails.capabilities.currentExtent.width == std::numeric_limits<uint32_t>::max())
@@ -123,17 +85,6 @@ void TriangleSwapchain::initSurfaceProperties()
 
     swapChainSupportDetails.formats = device.getPhysicalDevice().getSurfaceFormatsKHR(device.getSurface());
 
-    std::cout << "Formats:\n";
-    for ( size_t j = 0; j < swapChainSupportDetails.formats.size(); j++ )
-    {
-        std::cout << "\tFormat " << j << "\n";
-        std::cout << "\t\t"
-                    << "colorSpace  = " << vk::to_string( swapChainSupportDetails.formats[j].colorSpace ) << "\n";
-        std::cout << "\t\t"
-                    << "format      = " << vk::to_string( swapChainSupportDetails.formats[j].format ) << "\n";
-        std::cout << "\n";
-    }
-
     format = swapChainSupportDetails.formats[0];
     for (const auto& surfaceFormat : swapChainSupportDetails.formats)
     {
@@ -145,11 +96,6 @@ void TriangleSwapchain::initSurfaceProperties()
     }
 
     swapChainSupportDetails.presentModes = device.getPhysicalDevice().getSurfacePresentModesKHR(device.getSurface());
-    for ( size_t j = 0; j < swapChainSupportDetails.formats.size(); j++ )
-    {
-        std::cout << "\tPresent mode " << j << ":\t"
-                  << vk::to_string( swapChainSupportDetails.presentModes[j] ) << '\n';
-    }
 
     presentMode = vk::PresentModeKHR::eFifo;
 }
@@ -216,7 +162,6 @@ void TriangleSwapchain::createImageViews()
     std::vector<vk::Image> swapchainImages = device.getLogicalDevice().getSwapchainImagesKHR(swapchain);
 
     imageViews.reserve(swapchainImages.size());
-    std::cout << "Swapchain image size: " << swapchainImages.size() << '\n';
     vk::ImageViewCreateInfo imageViewCreateInfo(
         {}, 
         {}, 
@@ -386,8 +331,6 @@ vk::Result TriangleSwapchain::acquireNextImage(uint32_t* imageIndex, uint32_t& c
 {
     if (device.getLogicalDevice().waitForFences(inFlightFences[currentFrame], true, UINT64_MAX) != vk::Result::eSuccess)
         throw std::runtime_error("Something's wrong when waiting for fences");
-
-    device.getLogicalDevice().resetFences(inFlightFences[currentFrame]);
 
     return device.getLogicalDevice().acquireNextImageKHR(
         swapchain, 

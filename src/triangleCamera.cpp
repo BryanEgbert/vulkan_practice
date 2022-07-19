@@ -9,7 +9,6 @@
 TriangleCamera::TriangleCamera(GLFWwindow* window, const int windowWidth, const int windowHeight) 
     : window{window}, windowWidth{windowWidth}, windowHeight{windowHeight}
 {
-    std::cout << "set camera\n";
 }
 
 void TriangleCamera::setCamera(glm::vec3 cameraPos, glm::vec3 cameraFront, glm::vec3 cameraUp)

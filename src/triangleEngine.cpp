@@ -4,7 +4,6 @@
 #include "triangleModel.hpp"
 #include "trianglePipeline.hpp"
 #include "triangleSwapchain.hpp"
-#include "triangleUI.hpp"
 #include "triangleRenderer.hpp"
 
 #include <GLFW/glfw3.h>
@@ -42,9 +41,9 @@ TriangleEngine::~TriangleEngine()
 void TriangleEngine::run()
 {
     triangleModel = std::make_unique<TriangleModel>(triangleDevice);
-    triangleModel->createUniformBuffers(triangleSwapchain.MAX_FRAMES_IN_FLIGHT);
+    triangleModel->createUniformBuffers(triangleRenderer.getMaxFramesInFlight());
 
-    triangleDescriptor = std::make_unique<TriangleDescriptor>(triangleDevice, triangleSwapchain.MAX_FRAMES_IN_FLIGHT, triangleModel->getUniformBuffers());
+    triangleDescriptor = std::make_unique<TriangleDescriptor>(triangleDevice, triangleRenderer.getMaxFramesInFlight(), triangleModel->getUniformBuffers());
 
     // Adding entity
     TriangleModel::Mesh cubeMesh = TriangleModel::Mesh(cubeVertices, cubeIndices), squareMesh = TriangleModel::Mesh(squareVertices, squareIndices);
@@ -65,7 +64,6 @@ void TriangleEngine::run()
     createPipelineLayout();
     createPipeline();
 
-    triangleRenderer = std::make_unique<triangle::Renderer>(triangleDevice, triangleSwapchain, triangleUI);
 
     triangleCamera = std::make_unique<TriangleCamera>(triangleWindow.getWindow(), WIDTH, HEIGHT);
     triangleCamera->setCamera(cameraPos, glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f));
@@ -77,34 +75,28 @@ void TriangleEngine::run()
         frame = (frame + 1) % 100;
         glfwPollEvents();
 
-        triangleUI.draw([this]
+        triangleRenderer.createUI([this]
                         { drawUI(); });
 
         triangleCamera->processCameraMovement();
-        if (triangleUI.isCapturingMouse() == false)
+        if (triangleRenderer.getUiIO().WantCaptureMouse == false)
         {
             triangleCamera->processCameraRotation(0.2f);
         }
 
-        triangleRenderer->beginCommandBuffer();
-        triangleRenderer->beginRenderPass();
-
-            auto currentCommandBuffer = triangleRenderer->getCurrentCommandBuffer();
+        if (auto currentCommandBuffer = triangleRenderer.beginCommandBuffer())
+        {
+            triangleRenderer.beginRenderPass();
 
             trianglePipeline.bind(currentCommandBuffer);
 
-            vk::Viewport viewport(0.0f, 0.0f, static_cast<float>(triangleSwapchain.getExtent().width), static_cast<float>(triangleSwapchain.getExtent().height), 0.0f, 1.0f);
-            currentCommandBuffer.setViewport(0, viewport);
+            renderSystem(triangleRenderer.getCurrentFrame(), currentCommandBuffer);
 
-            vk::Rect2D scissor({0, 0}, triangleSwapchain.getExtent());
-            currentCommandBuffer.setScissor(0, scissor);
+            triangleRenderer.endRenderpass();
+            triangleRenderer.endCommandBuffer();
 
-            renderSystem(triangleRenderer->getCurrentFrame(), currentCommandBuffer);
-
-        triangleRenderer->endRenderpass();
-        triangleRenderer->endCommandBuffer();
-
-        triangleRenderer->submitBuffer();
+            triangleRenderer.submitBuffer();
+        }
     }
 
     triangleDevice.getLogicalDevice().waitIdle();
@@ -185,9 +177,8 @@ void TriangleEngine::createPipelineLayout()
 
 void TriangleEngine::createPipeline()
 {
-    auto extent = triangleSwapchain.getExtent();
-    vk::Viewport viewport(0.0f, 0.0f, static_cast<float>(extent.width), static_cast<float>(extent.height), 0.0f, 1.0f);
-    vk::Rect2D scissor({0, 0}, extent);
+    vk::Viewport viewport(0.0f, 0.0f, 0.f, 0.f , 0.0f, 1.0f);
+    vk::Rect2D scissor({0, 0}, {0, 0});
 
     vk::ColorComponentFlags colorComponentFlags(vk::ColorComponentFlagBits::eR | 
                                                 vk::ColorComponentFlagBits::eG | 
@@ -258,7 +249,7 @@ void TriangleEngine::createPipeline()
             dynamicStates
         ),
         pipelineLayout,
-        triangleSwapchain.getMainRenderPass()
+        triangleRenderer.getMainRenderPass()
     };
 
     trianglePipeline.createGraphicsPipeline(pipelineConfig, "../shaders/vert.spv", "../shaders/frag.spv");
@@ -278,11 +269,9 @@ void TriangleEngine::renderSystem(uint32_t currentImage, vk::CommandBuffer& curr
             cameraPos.x = sin(glfwGetTime()) * 10.0f;
             cameraPos.z = cos(glfwGetTime()) * 10.0f;
 
-            auto extent = triangleSwapchain.getExtent();
-
             component->mesh.mvp.model = transform;
             component->mesh.mvp.view = triangleCamera->getView();
-            component->mesh.mvp.proj = glm::perspective(glm::radians(45.0f), static_cast<float>(extent.width / extent.height), 0.1f, 20.0f);
+            component->mesh.mvp.proj = glm::perspective(glm::radians(45.0f), triangleRenderer.getAspectRatio(), 0.1f, 20.0f);
 
             component->mesh.mvp.proj[1][1] *= -1;
 

@@ -6,7 +6,6 @@
 #include "trianglePipeline.hpp"
 #include "triangleRenderer.hpp"
 #include "triangleSwapchain.hpp"
-#include "triangleUI.hpp"
 #include "triangleWindow.hpp"
 #include "triangleDescriptor.hpp"
 #include "triangleECS.hpp"
@@ -86,14 +85,12 @@ private:
 
     TriangleWindow triangleWindow{WIDTH, HEIGHT, "Vulkan"};
     TriangleDevice triangleDevice{"vulkan basic", triangleWindow};
-    TriangleSwapchain triangleSwapchain{triangleDevice};
-    TriangleUI triangleUI{triangleDevice, triangleWindow, triangleSwapchain};
     TrianglePipeline trianglePipeline{triangleDevice};
+    triangle::Renderer triangleRenderer{triangleDevice, triangleWindow};
     triangle::ECS ecs;
 
     vk::PipelineLayout pipelineLayout;
-    
-    std::unique_ptr<triangle::Renderer> triangleRenderer;
+
     std::unique_ptr<TriangleModel> triangleModel;
     std::unique_ptr<TriangleDescriptor> triangleDescriptor;
     std::unique_ptr<TriangleCamera> triangleCamera;
