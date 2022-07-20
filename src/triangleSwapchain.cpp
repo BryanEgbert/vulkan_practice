@@ -373,3 +373,8 @@ void TriangleSwapchain::createImageView(vk::Image& image, vk::ImageView& imageVi
     imageView = device.getLogicalDevice().createImageView(imageViewCreateInfo);
 }
 
+void TriangleSwapchain::createTextureImage()
+{
+    int texWidth, texHeight, texChannels;
+}
+

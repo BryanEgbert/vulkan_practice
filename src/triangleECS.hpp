@@ -35,7 +35,8 @@ namespace triangle
 	class ECS
 	{
 	public:
-		std::vector<Entity> getEntities() { return m_Entities; };
+		std::vector<Entity> getEntities() { return m_Entities; }
+		uint32_t getEntitySize() { return g_EntityID; }
 		bool deleteEntity(Entity& a_Entity)
 		{
 			if (a_Entity.id == 0)

@@ -76,7 +76,7 @@ public:
     vk::DeviceSize getDynamicAlignment() { return dynamicAlignment; }
 
     void bind(vk::CommandBuffer &commandBuffer, const vk::DeviceSize &vertexOffset, const vk::DeviceSize &indexOffset);
-    void createUniformBuffers(const uint32_t bufferCount);
+    void createUniformBuffers(const uint32_t bufferCount, const uint32_t entitySize);
 
     void allocVertexBuffer(const std::vector<std::vector<Vertex>>& a_Vertex);
     void allocIndexBuffer(const std::vector<std::vector<Index>>& a_Index);

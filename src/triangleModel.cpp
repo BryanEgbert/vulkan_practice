@@ -71,8 +71,6 @@ void TriangleModel::allocVertexBuffer(const std::vector<std::vector<Vertex>>& a_
     for (int i = 0; i < a_Vertex.size(); ++i)
     {
         bufferSize += sizeof(a_Vertex[0][0]) * a_Vertex[i].size();
-        if (offset == 0)
-            offset += bufferSize;
     }
 
     vk::Buffer stagingBuffer;
@@ -83,9 +81,13 @@ void TriangleModel::allocVertexBuffer(const std::vector<std::vector<Vertex>>& a_
 
     for (int i = 0; i < a_Vertex.size(); ++i)
     {
-        data = device.getLogicalDevice().mapMemory(stagingBufferMemory, offset * i, sizeof(a_Vertex[i][0]) * a_Vertex[i].size());
-        memcpy(data, a_Vertex[i].data(), sizeof(a_Vertex[i][0]) * a_Vertex[i].size());
+        int verticesByteSize = sizeof(a_Vertex[0][0]) * a_Vertex[i].size();
+
+        data = device.getLogicalDevice().mapMemory(stagingBufferMemory, offset, verticesByteSize);
+        memcpy(data, a_Vertex[i].data(), verticesByteSize);
         device.getLogicalDevice().unmapMemory(stagingBufferMemory);
+
+        offset += verticesByteSize;
     }
 
     device.createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eVertexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, vertexBuffer, vertexBufferMemory);
@@ -103,8 +105,6 @@ void TriangleModel::allocIndexBuffer(const std::vector<std::vector<Index>> &a_In
     for (int i = 0; i < a_Index.size(); ++i)
     {
         bufferSize += sizeof(Index) * a_Index[i].size();
-        if (offset == 0)
-            offset += bufferSize;
     }
 
     vk::Buffer stagingBuffer;
@@ -113,9 +113,13 @@ void TriangleModel::allocIndexBuffer(const std::vector<std::vector<Index>> &a_In
 
     for (int i = 0; i < a_Index.size(); ++i)
     {
-        data = device.getLogicalDevice().mapMemory(stagingBufferMemory, offset * i, sizeof(Index) * a_Index[i].size());
-        memcpy(data, a_Index[i].data(), sizeof(Index) * a_Index[i].size());
+        int indicesByteSize = sizeof(Index) * a_Index[i].size();
+
+        data = device.getLogicalDevice().mapMemory(stagingBufferMemory, offset, indicesByteSize);
+        memcpy(data, a_Index[i].data(), indicesByteSize);
         device.getLogicalDevice().unmapMemory(stagingBufferMemory);
+
+        offset += indicesByteSize;
     }
 
     device.createBuffer(bufferSize, vk::BufferUsageFlagBits::eTransferDst | vk::BufferUsageFlagBits::eIndexBuffer, vk::MemoryPropertyFlagBits::eDeviceLocal, indexBuffer, indexBufferMemory);
@@ -125,7 +129,7 @@ void TriangleModel::allocIndexBuffer(const std::vector<std::vector<Index>> &a_In
     device.getLogicalDevice().freeMemory(stagingBufferMemory);
 }
 
-void TriangleModel::createUniformBuffers(const uint32_t bufferCount)
+void TriangleModel::createUniformBuffers(const uint32_t bufferCount, const uint32_t entitySize)
 {
     uniformBufferCount = bufferCount;
 
@@ -135,7 +139,7 @@ void TriangleModel::createUniformBuffers(const uint32_t bufferCount)
     if (minUboAlignment > 0)
         dynamicAlignment = (dynamicAlignment + minUboAlignment - 1) &  ~(minUboAlignment - 1);
 
-    vk::DeviceSize bufferSize = dynamicAlignment * 2;
+    vk::DeviceSize bufferSize = dynamicAlignment * entitySize;
 
     uniformBuffers.resize(bufferCount);
     uniformBufferMemories.resize(bufferCount);

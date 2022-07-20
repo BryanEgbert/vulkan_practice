@@ -40,26 +40,36 @@ TriangleEngine::~TriangleEngine()
 
 void TriangleEngine::run()
 {
-    triangleModel = std::make_unique<TriangleModel>(triangleDevice);
-    triangleModel->createUniformBuffers(triangleRenderer.getMaxFramesInFlight());
-
-    triangleDescriptor = std::make_unique<TriangleDescriptor>(triangleDevice, triangleRenderer.getMaxFramesInFlight(), triangleModel->getUniformBuffers());
-
     // Adding entity
-    TriangleModel::Mesh cubeMesh = TriangleModel::Mesh(cubeVertices, cubeIndices), squareMesh = TriangleModel::Mesh(squareVertices, squareIndices);
-    TriangleModel::Transform cubeTransform, squareTransform;
+    TriangleModel::Mesh cubeMesh = TriangleModel::Mesh(cubeVertices, cubeIndices), 
+                        squareMesh = TriangleModel::Mesh(squareVertices, squareIndices),
+                        pyramidMesh = TriangleModel::Mesh(pyramidVertices, pyramidIndices);
+
+    TriangleModel::Transform cubeTransform, squareTransform, pyramidTransform;
     squareTransform.position = glm::vec3(2.f, 2.f, 2.f);
+    pyramidTransform.position = glm::vec3(4.f, 4.f, 4.f);
 
     TriangleModel::RenderModel cubeModel = TriangleModel::RenderModel(cubeMesh, cubeTransform),
-                               squareModel = TriangleModel::RenderModel(squareMesh, squareTransform);
+                               squareModel = TriangleModel::RenderModel(squareMesh, squareTransform),
+                               pyramidModel = TriangleModel::RenderModel(pyramidMesh, pyramidTransform);
 
-    triangle::Entity cubeEntity = triangle::Entity(), squareEntity = triangle::Entity();
+    triangle::Entity cubeEntity = triangle::Entity(), 
+                     squareEntity = triangle::Entity(),
+                     pyramidEntity = triangle::Entity();
 
     ecs.addEntity(cubeEntity);
     ecs.addEntity(squareEntity);
+    ecs.addEntity(pyramidEntity);
 
     ecs.assignComponent<TriangleModel::RenderModel>(cubeEntity, cubeModel);
     ecs.assignComponent<TriangleModel::RenderModel>(squareEntity, squareModel);
+    ecs.assignComponent<TriangleModel::RenderModel>(pyramidEntity, pyramidModel);
+
+    triangleModel = std::make_unique<TriangleModel>(triangleDevice);
+    triangleModel->createUniformBuffers(triangleRenderer.getMaxFramesInFlight(), ecs.getEntitySize());
+
+    triangleDescriptor = std::make_unique<TriangleDescriptor>(triangleDevice, triangleRenderer.getMaxFramesInFlight(), triangleModel->getUniformBuffers());
+
 
     createPipelineLayout();
     createPipeline();
@@ -288,9 +298,11 @@ void TriangleEngine::renderSystem(uint32_t currentImage, vk::CommandBuffer& curr
                                 sizeof(component->mesh.indices[0]) * component->mesh.indices.size() * (entity.id - 1));
 
             TriangleModel::MeshPushConstant push{};
-            push.offset = {0.0f + (frame * 0.005f * entity.id * entity.id), 0.0f, 0.0f + (frame * 0.005f * entity.id * entity.id)};
-            push.color = {0.0f, 0.0f + (frame * 0.005f), 0.0f + (frame * 0.0025f)};
-
+            // push.offset = {0.0f + (frame * 0.005f * entity.id * entity.id), 0.0f, 0.0f + (frame * 0.005f * entity.id * entity.id)};
+            // push.color = {0.0f, 0.0f + (frame * 0.005f), 0.0f + (frame * 0.0025f)};
+            push.offset = {0.f, 0.f, 0.f};
+            push.color = {0.f, 0.f, 0.f};
+            
             currentCommandBuffer.pushConstants<TriangleModel::MeshPushConstant>(pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, push);
             currentCommandBuffer.drawIndexed(static_cast<uint32_t>(component->mesh.indices.size()), 1, 0, 0, 0);
         }

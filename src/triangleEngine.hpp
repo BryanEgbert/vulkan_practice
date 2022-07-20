@@ -27,6 +27,7 @@ public:
 
 private:
     std::vector<TriangleModel::Vertex> squareVertices = {
+        // position         ,   color
         {{-0.5f, -0.5f, 0.0f}, {0.5f, 0.0f, 0.0f}},
         {{0.5f, -0.5f, 0.0f}, {0.5f, 0.0f, 0.0f}},
         {{0.5f, 0.5f, 0.0f}, {0.5f, 0.0f, 0.0f}},
@@ -66,6 +67,20 @@ private:
         {{-0.5f, 0.5f, 0.5f}, {0.6f, 0.2f, 0.5f}},
     };
 
+    std::vector<TriangleModel::Vertex> pyramidVertices = {
+        {{-0.5f, -0.5f, 0.5f}, {0.5f, 0.f, 0.f}},
+        {{0.5f, -0.5f, 0.5f}, {0.5f, 0.f, 0.f}},
+        {{0.f, 0.5f, 0.f}, {0.5f, 0.f, 0.f}},
+
+        {{-0.5f, -0.5f, -0.5f}, {0.5f, 0.f, 0.f}},
+
+        {{0.5f, -0.5f, -0.5f}, {0.5f, 0.f, 0.f}},
+
+        {{0.5f, -0.5f, -0.5f}, {0.5f, 0.f, 0.f}},
+        {{0.5f, -0.5f, 0.5f}, {0.5f, 0.f, 0.f}},
+        {{0.f, 0.f, 0.f}, {0.5f, 0.f, 0.f}}
+    };
+
     std::vector<Index> squareIndices = {
         0, 1, 2, 2, 3, 0
     };
@@ -77,6 +92,14 @@ private:
         12, 13, 14, 14, 15, 12, 
         16, 17, 18, 18, 19, 16, 
         20, 21, 22, 22, 23, 20
+    };
+
+    std::vector<Index> pyramidIndices = {
+        0, 1, 2,
+        0, 3, 2,
+        3, 4, 2, 
+        4, 1, 2,
+        0, 1, 3, 4
     };
 
     uint32_t currentFrame = 0, imageIndex;
