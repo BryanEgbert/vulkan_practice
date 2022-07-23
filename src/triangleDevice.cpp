@@ -262,6 +262,7 @@ void TriangleDevice::createDevice()
 
     float queuePriority = 1.0f;
     vk::PhysicalDeviceFeatures deviceFeatures;
+    deviceFeatures.samplerAnisotropy = VK_TRUE;
 
     vk::DeviceQueueCreateInfo deviceQueueCreateInfo(vk::DeviceQueueCreateFlags(), queueFamilyIndex.graphics, 1, &queuePriority);
 

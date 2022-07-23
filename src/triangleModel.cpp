@@ -45,8 +45,9 @@ std::vector<vk::VertexInputBindingDescription> TriangleModel::Vertex::getBinding
 std::vector<vk::VertexInputAttributeDescription> TriangleModel::Vertex::getAttributeDescriptions()
 {
     std::vector<vk::VertexInputAttributeDescription> attributeDescriptions;
-    attributeDescriptions.reserve(2);
+    attributeDescriptions.reserve(3);
 
+    // position
     vk::VertexInputAttributeDescription attributeDescription(
         0,
         0,
@@ -56,8 +57,15 @@ std::vector<vk::VertexInputAttributeDescription> TriangleModel::Vertex::getAttri
 
     attributeDescriptions.push_back(attributeDescription);
 
+    // color
     attributeDescription.setLocation(1);
     attributeDescription.setOffset(offsetof(Vertex, color));
+    attributeDescriptions.push_back(attributeDescription);
+
+    // uv
+    attributeDescription.setLocation(2);
+    attributeDescription.setFormat(vk::Format::eR32G32Sfloat);
+    attributeDescription.setOffset(offsetof(Vertex, uv));
     attributeDescriptions.push_back(attributeDescription);
 
 

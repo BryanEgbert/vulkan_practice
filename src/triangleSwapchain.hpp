@@ -2,18 +2,29 @@
 
 #include "triangleDevice.hpp"
 #include "triangleWindow.hpp"
-#include "vulkan/vulkan_enums.hpp"
-#include "vulkan/vulkan_handles.hpp"
-#include "vulkan/vulkan_structs.hpp"
+
+#include <vulkan/vulkan.hpp>
+
 #include <cstdint>
 #include <iostream>
 #include <vector>
-#include <vulkan/vulkan.hpp>
+#include <string>
 
 class TriangleSwapchain
 {
 public:
     static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
+
+    struct Texture
+    {
+        vk::Sampler sampler;
+        vk::ImageView imageView;
+        vk::ImageLayout imageLayout;
+        vk::Image image;
+        vk::DeviceMemory deviceMemory;
+        uint32_t width, height;
+        uint32_t mipLevels;
+    } textureProperties;
 
     TriangleSwapchain(TriangleDevice& device);
     ~TriangleSwapchain();
@@ -42,7 +53,7 @@ private:
         vk::SurfaceCapabilitiesKHR capabilities;
         std::vector<vk::SurfaceFormatKHR> formats;
         std::vector<vk::PresentModeKHR> presentModes;
-    }swapChainSupportDetails;
+    } swapChainSupportDetails;
 
     vk::SurfaceFormatKHR format;
     vk::PresentModeKHR presentMode;
@@ -52,13 +63,12 @@ private:
     std::vector<vk::ImageView> imageViews;
     std::vector<vk::Framebuffer> mainFrameBuffers, uiFrameBuffers;
 
-    vk::MemoryRequirements memRequirements;
-
     vk::Image depthImage;
     vk::DeviceMemory depthImageMemory;
     vk::ImageView depthImageView;
 
     vk::RenderPass mainRenderPass, uiRenderPass;
+    
     std::vector<vk::Semaphore> imageAvailableSemaphore, renderFinishedSemaphore;
     std::vector<vk::Fence> inFlightFences;
 
@@ -71,12 +81,8 @@ private:
     void createUIRenderPass();
     void createFrameBuffers();
     void createSyncObject();
+    void loadTexture(const std::string& filename);
 
-    void createImage(vk::Format format, vk::ImageTiling tiling, vk::ImageUsageFlags usage, vk::MemoryPropertyFlags properties, vk::Image& image, vk::DeviceMemory& imageMemory);
-    void createImageView(vk::Image& image, vk::ImageView& imageView, vk::Format& format, vk::ImageAspectFlags aspectFlags);
-
-    void createTextureImage();
-    
     vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
     vk::Format findDepthFormat();
 };

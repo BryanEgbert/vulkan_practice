@@ -13,7 +13,7 @@ public:
 
     vk::PhysicalDevice getPhysicalDevice() { return physicalDevice; };
     vk::Device getLogicalDevice() { return device; };
-    vk::SurfaceKHR getSurface() { return surface; };
+    vk::SurfaceKHR getSurface() { return static_cast<vk::SurfaceKHR>(surface); };
     auto getQueueFamilyIndex() { return queueFamilyIndex; };
     vk::CommandPool getCommandPool() { return mainCommandPool; };
 
@@ -32,6 +32,8 @@ public:
                         vk::Buffer&  buffer, 
                         vk::DeviceMemory& bufferMemory);
     void allocateAndBindImage(vk::DeviceMemory& imageMemory, vk::Image& image, vk::MemoryPropertyFlags properties);
+    uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
+
 private:
     struct SwapChainSupportDetails
     {
@@ -69,9 +71,6 @@ private:
                                                     VkDebugUtilsMessageTypeFlagsEXT messageTypes,
                                                     const VkDebugUtilsMessengerCallbackDataEXT* pCallbackData,
                                                     void* pUserData);
-
-
-    uint32_t findMemoryType(uint32_t typeFilter, vk::MemoryPropertyFlags properties);
 
     void createInstance();
     void createSurface();

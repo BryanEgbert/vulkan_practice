@@ -42,34 +42,33 @@ void TriangleEngine::run()
 {
     // Adding entity
     TriangleModel::Mesh cubeMesh = TriangleModel::Mesh(cubeVertices, cubeIndices), 
-                        squareMesh = TriangleModel::Mesh(squareVertices, squareIndices),
-                        pyramidMesh = TriangleModel::Mesh(pyramidVertices, pyramidIndices);
+                        squareMesh = TriangleModel::Mesh(squareVertices, squareIndices);
+                        // pyramidMesh = TriangleModel::Mesh(pyramidVertices, pyramidIndices);
 
     TriangleModel::Transform cubeTransform, squareTransform, pyramidTransform;
     squareTransform.position = glm::vec3(2.f, 2.f, 2.f);
-    pyramidTransform.position = glm::vec3(4.f, 4.f, 4.f);
+    // pyramidTransform.position = glm::vec3(4.f, 4.f, 4.f);
 
     TriangleModel::RenderModel cubeModel = TriangleModel::RenderModel(cubeMesh, cubeTransform),
-                               squareModel = TriangleModel::RenderModel(squareMesh, squareTransform),
-                               pyramidModel = TriangleModel::RenderModel(pyramidMesh, pyramidTransform);
+                               squareModel = TriangleModel::RenderModel(squareMesh, squareTransform);
+                            //    pyramidModel = TriangleModel::RenderModel(pyramidMesh, pyramidTransform)
 
     triangle::Entity cubeEntity = triangle::Entity(), 
-                     squareEntity = triangle::Entity(),
-                     pyramidEntity = triangle::Entity();
+                     squareEntity = triangle::Entity();
+                    //  pyramidEntity = triangle::Entity()
 
     ecs.addEntity(cubeEntity);
     ecs.addEntity(squareEntity);
-    ecs.addEntity(pyramidEntity);
+    // ecs.addEntity(pyramidEntity);
 
     ecs.assignComponent<TriangleModel::RenderModel>(cubeEntity, cubeModel);
     ecs.assignComponent<TriangleModel::RenderModel>(squareEntity, squareModel);
-    ecs.assignComponent<TriangleModel::RenderModel>(pyramidEntity, pyramidModel);
+    // ecs.assignComponent<TriangleModel::RenderModel>(pyramidEntity, pyramidModel);
 
     triangleModel = std::make_unique<TriangleModel>(triangleDevice);
     triangleModel->createUniformBuffers(triangleRenderer.getMaxFramesInFlight(), ecs.getEntitySize());
 
-    triangleDescriptor = std::make_unique<TriangleDescriptor>(triangleDevice, triangleRenderer.getMaxFramesInFlight(), triangleModel->getUniformBuffers());
-
+    triangleDescriptor = std::make_unique<TriangleDescriptor>(triangleDevice, triangleRenderer.getMaxFramesInFlight(), triangleModel->getUniformBuffers(), triangleRenderer.getTextureProperties());
 
     createPipelineLayout();
     createPipeline();
@@ -152,14 +151,6 @@ void TriangleEngine::drawUI()
     if (ImGui::Begin("Device Properties"))
     {
         ImGui::Text("UBO dynamic offset: %d", triangleModel->getDynamicAlignment());
-    }
-    ImGui::End();
-
-    if (ImGui::Begin("Scene"))
-    {
-        // ImGui::Text("Camera");
-
-        // ImGui::Image(ImTextureID user_texture_id, const ImVec2 &size)
     }
     ImGui::End();
 

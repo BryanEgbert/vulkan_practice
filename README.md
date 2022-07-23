@@ -1,7 +1,5 @@
 # Vulkan Practice
-A repo for me to study graphics programming with Vulkan API. The initial commit is a code mainly from various tutorial to create a moving cube
+A repo for me to study graphics programming with Vulkan API.
 
-## Change Log:
-____
-### <u>__19-05-2022__</u>
-- Add camera movement thanks to this [website](https://learnopengl.com/Getting-started/Camera) explaining clearly about camera movement and the maths behind it.
+## Credits:
+- Parchment texture photo created by efe_madrid - [freepik](https://www.freepik.com/photos/parchment-texture)
