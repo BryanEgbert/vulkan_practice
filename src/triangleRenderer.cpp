@@ -10,10 +10,10 @@
 
 namespace triangle
 {
-    Renderer::Renderer(TriangleDevice &device, TriangleWindow &window)
+    Renderer::Renderer(Device &device, Window &window)
         : device{device}, window{window}
     {
-        swapchain = std::make_unique<TriangleSwapchain>(device);
+        swapchain = std::make_unique<Swapchain>(device);
 
         commandBuffers.resize(swapchain->MAX_FRAMES_IN_FLIGHT);
         createCommandBuffer();
@@ -214,7 +214,7 @@ namespace triangle
         }
 
         device.getLogicalDevice().waitIdle();
-        swapchain = std::make_unique<TriangleSwapchain>(device);
+        swapchain = std::make_unique<Swapchain>(device);
     }
 
     void Renderer::destroyCommandBuffer()

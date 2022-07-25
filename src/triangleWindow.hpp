@@ -6,34 +6,37 @@
 #include <iostream>
 #include <vulkan/vulkan_core.h>
 
-class TriangleWindow {
-public:
+namespace triangle
+{
+    class Window {
+    public:
 
-    TriangleWindow(int width, int height, const char* name);
-    ~TriangleWindow();
-    
-    uint32_t glfwExtensionCount = 0;
-    const char** glfwExtensions;
+        Window(int width, int height, const char* name);
+        ~Window();
+        
+        uint32_t glfwExtensionCount = 0;
+        const char** glfwExtensions;
 
-    bool shouldClose() { return glfwWindowShouldClose(window); }
-    void createSurface(VkInstance instance, VkSurfaceKHR* surface);
-    void getFrameBufferSize(int* width, int* height) { return glfwGetFramebufferSize(window, width, height); }
+        bool shouldClose() { return glfwWindowShouldClose(window); }
+        void createSurface(VkInstance instance, VkSurfaceKHR* surface);
+        void getFrameBufferSize(int* width, int* height) { return glfwGetFramebufferSize(window, width, height); }
 
-    bool isWindowResized() { return isFrameBufferResized; }
-    void resetWindowResizeFlag() { isFrameBufferResized = false; }
+        bool isWindowResized() { return isFrameBufferResized; }
+        void resetWindowResizeFlag() { isFrameBufferResized = false; }
 
-    GLFWwindow* getWindow() { return window; };
+        GLFWwindow* getWindow() { return window; };
 
-private:
-    int width, height;
+    private:
+        int width, height;
 
-    const char* windowName;
-    bool isFrameBufferResized = false;
+        const char* windowName;
+        bool isFrameBufferResized = false;
 
-    GLFWwindow* window;
+        GLFWwindow* window;
 
-    void initWindow();
-    void initGlfwExtensions();
+        void initWindow();
+        void initGlfwExtensions();
 
-    static void frameBufferResizeCallback(GLFWwindow *window, int width, int height);
-};
+        static void frameBufferResizeCallback(GLFWwindow *window, int width, int height);
+    };
+}

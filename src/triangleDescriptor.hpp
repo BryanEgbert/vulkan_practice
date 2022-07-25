@@ -6,29 +6,31 @@
 #include <vulkan/vulkan.hpp>
 #include <vector>
 
-
-class TriangleDescriptor
+namespace triangle
 {
-public:
-    TriangleDescriptor(TriangleDevice &device, uint32_t descriptorCount, const std::vector<vk::Buffer> &buffers, const TriangleSwapchain::Texture &textureProperties);
-    ~TriangleDescriptor();
+    class Descriptor
+    {
+    public:
+        Descriptor(Device &device, uint32_t descriptorCount, const std::vector<vk::Buffer> &buffers, const Swapchain::Texture &textureProperties);
+        ~Descriptor();
 
-    vk::DescriptorSet getDescriptorSet(uint32_t index) { return descriptorSets[index]; };
-    vk::DescriptorSetLayout getDescriptorSetLayout() { return descriptorSetLayout; };
+        vk::DescriptorSet getDescriptorSet(uint32_t index) { return descriptorSets[index]; };
+        vk::DescriptorSetLayout getDescriptorSetLayout() { return descriptorSetLayout; };
 
-    void createDescriptorPool();
-    void createDescriptorSetLayout();
-    void createDescriptorSets(const std::vector<vk::Buffer> &buffers, const TriangleSwapchain::Texture& textureProperties);
+        void createDescriptorPool();
+        void createDescriptorSetLayout();
+        void createDescriptorSets(const std::vector<vk::Buffer> &buffers, const Swapchain::Texture& textureProperties);
 
-private:
-    TriangleDevice& device;
+    private:
+        Device& device;
 
-    uint32_t descriptorCount;
+        uint32_t descriptorCount;
 
-    vk::DescriptorPool descriptorPool;
-    std::vector<vk::DescriptorSet> descriptorSets;
+        vk::DescriptorPool descriptorPool;
+        std::vector<vk::DescriptorSet> descriptorSets;
 
-    vk::DescriptorSetLayout descriptorSetLayout;
-    vk::DescriptorSetLayoutBinding descSetLayoutBinding;
+        vk::DescriptorSetLayout descriptorSetLayout;
+        vk::DescriptorSetLayoutBinding descSetLayoutBinding;
 
-};
+    };
+}

@@ -10,85 +10,88 @@
 #include <stdexcept>
 #include <vector>
 
-TrianglePipeline::TrianglePipeline(TriangleDevice &device)
-    : device{device} {}
-
-TrianglePipeline::~TrianglePipeline()
+namespace triangle
 {
-    device.getLogicalDevice().destroyShaderModule(fragShaderModule);
-    device.getLogicalDevice().destroyShaderModule(vertShaderModule);
+    Pipeline::Pipeline(Device &device)
+        : device{device} {}
 
-    device.getLogicalDevice().destroyPipeline(pipeline);
-}
+    Pipeline::~Pipeline()
+    {
+        device.getLogicalDevice().destroyShaderModule(fragShaderModule);
+        device.getLogicalDevice().destroyShaderModule(vertShaderModule);
 
-std::vector<char> TrianglePipeline::readFile(const char* filename)
-{
-    std::ifstream file(filename, std::ios::ate | std::ios::binary);
+        device.getLogicalDevice().destroyPipeline(pipeline);
+    }
 
-    if(!file.is_open())
-        throw std::runtime_error("Failed to open file");
+    std::vector<char> Pipeline::readFile(const char* filename)
+    {
+        std::ifstream file(filename, std::ios::ate | std::ios::binary);
 
-    size_t fileSize = (size_t) file.tellg();
-    std::vector<char> buffer(fileSize);
+        if(!file.is_open())
+            throw std::runtime_error("Failed to open file");
 
-    file.seekg(0);
-    file.read(buffer.data(), fileSize);
+        size_t fileSize = (size_t) file.tellg();
+        std::vector<char> buffer(fileSize);
 
-    file.close();
+        file.seekg(0);
+        file.read(buffer.data(), fileSize);
 
-    return buffer;
-}
+        file.close();
 
-void TrianglePipeline::bind(vk::CommandBuffer &commandBuffer)
-{
-    commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
-}
+        return buffer;
+    }
 
-void TrianglePipeline::createGraphicsPipeline(PipelineConfig &pipelineConfig, const char *vertFilePath, const char *fragFilePath)
-{
-    auto vertShaderCode = TrianglePipeline::readFile(vertFilePath);
-    auto fragShaderCode = TrianglePipeline::readFile(fragFilePath);
+    void Pipeline::bind(vk::CommandBuffer &commandBuffer)
+    {
+        commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
+    }
 
-    vertShaderModule = createShaderModule(vertShaderCode);
-    fragShaderModule = createShaderModule(fragShaderCode);
+    void Pipeline::createGraphicsPipeline(PipelineConfig &pipelineConfig, const char *vertFilePath, const char *fragFilePath)
+    {
+        auto vertShaderCode = Pipeline::readFile(vertFilePath);
+        auto fragShaderCode = Pipeline::readFile(fragFilePath);
 
-    std::array<vk::PipelineShaderStageCreateInfo, 2> pipelineShaderStageCreateInfos = {
-        vk::PipelineShaderStageCreateInfo(vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eVertex, vertShaderModule, "main", nullptr),    
-        vk::PipelineShaderStageCreateInfo(vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eFragment,fragShaderModule,"main", nullptr)
-    };
+        vertShaderModule = createShaderModule(vertShaderCode);
+        fragShaderModule = createShaderModule(fragShaderCode);
 
-    vk::PipelineVertexInputStateCreateInfo vertexInputCreateInfo(
-        vk::PipelineVertexInputStateCreateFlags(),
-        pipelineConfig.bindingDescriptions,
-        pipelineConfig.attributeDescriptions
-    );
+        std::array<vk::PipelineShaderStageCreateInfo, 2> pipelineShaderStageCreateInfos = {
+            vk::PipelineShaderStageCreateInfo(vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eVertex, vertShaderModule, "main", nullptr),    
+            vk::PipelineShaderStageCreateInfo(vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eFragment,fragShaderModule,"main", nullptr)
+        };
 
-    vk::GraphicsPipelineCreateInfo pipelineCreateInfo(
-        vk::PipelineCreateFlags(),
-        pipelineShaderStageCreateInfos,
-        &vertexInputCreateInfo,
-        &pipelineConfig.inputAssemblyCreateInfo,
-        nullptr,
-        &pipelineConfig.viewportStateCreateInfo,
-        &pipelineConfig.rasterizerStateCreateInfo,
-        &pipelineConfig.multisampleStateCreateInfo,
-        pipelineConfig.depthStenciStateCreateInfo ? &pipelineConfig.depthStenciStateCreateInfo.value() : nullptr,
-        &pipelineConfig.colorBlendingStateCreateInfo,
-        pipelineConfig.dynamicStateCreateInfo ? &pipelineConfig.dynamicStateCreateInfo.value() : nullptr,
-        pipelineConfig.pipelineLayout,
-        pipelineConfig.renderPass
-    );
+        vk::PipelineVertexInputStateCreateInfo vertexInputCreateInfo(
+            vk::PipelineVertexInputStateCreateFlags(),
+            pipelineConfig.bindingDescriptions,
+            pipelineConfig.attributeDescriptions
+        );
 
-    vk::Result result;
-    std::tie(result, pipeline) = device.getLogicalDevice().createGraphicsPipeline(nullptr, pipelineCreateInfo);
-    // std::cout << "pipeline: " << material.pipeline << '\n'; 
-}
+        vk::GraphicsPipelineCreateInfo pipelineCreateInfo(
+            vk::PipelineCreateFlags(),
+            pipelineShaderStageCreateInfos,
+            &vertexInputCreateInfo,
+            &pipelineConfig.inputAssemblyCreateInfo,
+            nullptr,
+            &pipelineConfig.viewportStateCreateInfo,
+            &pipelineConfig.rasterizerStateCreateInfo,
+            &pipelineConfig.multisampleStateCreateInfo,
+            pipelineConfig.depthStenciStateCreateInfo ? &pipelineConfig.depthStenciStateCreateInfo.value() : nullptr,
+            &pipelineConfig.colorBlendingStateCreateInfo,
+            pipelineConfig.dynamicStateCreateInfo ? &pipelineConfig.dynamicStateCreateInfo.value() : nullptr,
+            pipelineConfig.pipelineLayout,
+            pipelineConfig.renderPass
+        );
 
-vk::ShaderModule TrianglePipeline::createShaderModule(const std::vector<char>& code)
-{
-    vk::ShaderModuleCreateInfo shaderModuleCreateInfo(vk::ShaderModuleCreateFlags(), code.size(), reinterpret_cast<const uint32_t*>(code.data()));
+        vk::Result result;
+        std::tie(result, pipeline) = device.getLogicalDevice().createGraphicsPipeline(nullptr, pipelineCreateInfo);
+        // std::cout << "pipeline: " << material.pipeline << '\n'; 
+    }
 
-    vk::ShaderModule shaderModule = device.getLogicalDevice().createShaderModule(shaderModuleCreateInfo);
+    vk::ShaderModule Pipeline::createShaderModule(const std::vector<char>& code)
+    {
+        vk::ShaderModuleCreateInfo shaderModuleCreateInfo(vk::ShaderModuleCreateFlags(), code.size(), reinterpret_cast<const uint32_t*>(code.data()));
 
-    return shaderModule;
+        vk::ShaderModule shaderModule = device.getLogicalDevice().createShaderModule(shaderModuleCreateInfo);
+
+        return shaderModule;
+    }
 }

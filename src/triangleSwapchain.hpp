@@ -10,79 +10,83 @@
 #include <vector>
 #include <string>
 
-class TriangleSwapchain
+namespace triangle
 {
-public:
-    static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-    struct Texture
+    class Swapchain
     {
-        vk::Sampler sampler;
-        vk::ImageView imageView;
-        vk::ImageLayout imageLayout;
-        vk::Image image;
-        vk::DeviceMemory deviceMemory;
-        uint32_t width, height;
-        uint32_t mipLevels;
-    } textureProperties;
+    public:
+        static constexpr int MAX_FRAMES_IN_FLIGHT = 2;
 
-    TriangleSwapchain(TriangleDevice& device);
-    ~TriangleSwapchain();
+        struct Texture
+        {
+            vk::Sampler sampler;
+            vk::ImageView imageView;
+            vk::ImageLayout imageLayout;
+            vk::Image image;
+            vk::DeviceMemory deviceMemory;
+            uint32_t width, height;
+            uint32_t mipLevels;
+        } textureProperties;
 
-    vk::Extent2D getExtent() { return swapchainExtent; };
-    vk::SurfaceFormatKHR getFormat() { return format; };
-    vk::RenderPass getMainRenderPass() { return mainRenderPass; };
-    vk::RenderPass getUIRenderPass() { return uiRenderPass; };
-    std::vector<vk::Framebuffer> getMainFramebuffers() { return mainFrameBuffers; };
-    std::vector<vk::Framebuffer> getUIFramebuffers() { return uiFrameBuffers; };
-    vk::SwapchainKHR getSwapchain() { return swapchain; };
+        Swapchain(Device& device);
+        ~Swapchain();
 
-    vk::Result acquireNextImage(uint32_t* imageIndex, uint32_t& currentFrame);
-    vk::Fence getInFlightFences(uint32_t index) { return inFlightFences[index]; };
+        vk::Extent2D getExtent() { return swapchainExtent; };
+        vk::SurfaceFormatKHR getFormat() { return format; };
+        vk::RenderPass getMainRenderPass() { return mainRenderPass; };
+        vk::RenderPass getUIRenderPass() { return uiRenderPass; };
+        std::vector<vk::Framebuffer> getMainFramebuffers() { return mainFrameBuffers; };
+        std::vector<vk::Framebuffer> getUIFramebuffers() { return uiFrameBuffers; };
+        vk::SwapchainKHR getSwapchain() { return swapchain; };
 
-    vk::Semaphore getRenderSemaphore(int index) { return renderFinishedSemaphore[index]; };
-    vk::Semaphore getPresentSemaphore(int index) { return imageAvailableSemaphore[index]; };
-    uint32_t getMinImageCount() { return swapChainSupportDetails.capabilities.minImageCount + 1; };
+        vk::Result acquireNextImage(uint32_t* imageIndex, uint32_t& currentFrame);
+        vk::Fence getInFlightFences(uint32_t index) { return inFlightFences[index]; };
 
-private:
-    TriangleDevice& device;
-    const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+        vk::Semaphore getRenderSemaphore(int index) { return renderFinishedSemaphore[index]; };
+        vk::Semaphore getPresentSemaphore(int index) { return imageAvailableSemaphore[index]; };
+        uint32_t getMinImageCount() { return swapChainSupportDetails.capabilities.minImageCount + 1; };
 
-    struct SwapChainSupportDetails
-    {
-        vk::SurfaceCapabilitiesKHR capabilities;
-        std::vector<vk::SurfaceFormatKHR> formats;
-        std::vector<vk::PresentModeKHR> presentModes;
-    } swapChainSupportDetails;
+    private:
+        Device& device;
+        const std::vector<const char*> deviceExtensions = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 
-    vk::SurfaceFormatKHR format;
-    vk::PresentModeKHR presentMode;
-    vk::Extent2D swapchainExtent;
+        struct SwapChainSupportDetails
+        {
+            vk::SurfaceCapabilitiesKHR capabilities;
+            std::vector<vk::SurfaceFormatKHR> formats;
+            std::vector<vk::PresentModeKHR> presentModes;
+        } swapChainSupportDetails;
 
-    vk::SwapchainKHR swapchain;
-    std::vector<vk::ImageView> imageViews;
-    std::vector<vk::Framebuffer> mainFrameBuffers, uiFrameBuffers;
+        vk::SurfaceFormatKHR format;
+        vk::PresentModeKHR presentMode;
+        vk::Extent2D swapchainExtent;
 
-    vk::Image depthImage;
-    vk::DeviceMemory depthImageMemory;
-    vk::ImageView depthImageView;
+        vk::SwapchainKHR swapchain;
+        std::vector<vk::ImageView> imageViews;
+        std::vector<vk::Framebuffer> mainFrameBuffers, uiFrameBuffers;
 
-    vk::RenderPass mainRenderPass, uiRenderPass;
-    
-    std::vector<vk::Semaphore> imageAvailableSemaphore, renderFinishedSemaphore;
-    std::vector<vk::Fence> inFlightFences;
+        vk::Image depthImage;
+        vk::DeviceMemory depthImageMemory;
+        vk::ImageView depthImageView;
 
-    void querySwapchainSupport();
-    void initSurfaceProperties();
-    void createSwapchain();
-    void createImageViews();
-    void createDepthResources();
-    void createRenderPass();
-    void createUIRenderPass();
-    void createFrameBuffers();
-    void createSyncObject();
-    void loadTexture(const std::string& filename);
+        vk::RenderPass mainRenderPass, uiRenderPass;
+        
+        std::vector<vk::Semaphore> imageAvailableSemaphore, renderFinishedSemaphore;
+        std::vector<vk::Fence> inFlightFences;
 
-    vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
-    vk::Format findDepthFormat();
-};
+        void querySwapchainSupport();
+        void initSurfaceProperties();
+        void createSwapchain();
+        void createImageViews();
+        void createDepthResources();
+        void createRenderPass();
+        void createUIRenderPass();
+        void createFrameBuffers();
+        void createSyncObject();
+        void loadTexture(const std::string& filename);
+
+        vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
+        vk::Format findDepthFormat();
+    };
+}

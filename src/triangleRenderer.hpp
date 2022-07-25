@@ -19,7 +19,7 @@ namespace triangle
     {
     public:
         
-        Renderer(TriangleDevice& device, TriangleWindow& window);
+        Renderer(Device& device, Window& window);
         ~Renderer();
         
         vk::CommandBuffer& getCurrentCommandBuffer() { return commandBuffers.at(currentFrame); }
@@ -28,7 +28,7 @@ namespace triangle
         vk::RenderPass getMainRenderPass() { return swapchain->getMainRenderPass(); }
         float getAspectRatio() { return swapchain->getExtent().width / swapchain->getExtent().height; }
         ImGuiIO& getUiIO() { return ImGui::GetIO(); }
-        TriangleSwapchain::Texture getTextureProperties() { return swapchain->textureProperties; }
+        Swapchain::Texture getTextureProperties() { return swapchain->textureProperties; }
 
         void createUI(std::function<void()> frameCallback);
 
@@ -48,9 +48,9 @@ namespace triangle
         void setupDebugUI();
         void renderUI();
 
-        TriangleDevice& device;
-        std::unique_ptr<TriangleSwapchain> swapchain;
-        TriangleWindow& window;
+        Device& device;
+        std::unique_ptr<Swapchain> swapchain;
+        Window& window;
 
         std::vector<vk::CommandBuffer> commandBuffers, uiCommandBuffers;
         vk::DescriptorPool imguiDescPool;

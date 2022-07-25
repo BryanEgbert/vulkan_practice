@@ -9,37 +9,40 @@
 #include <vector>
 #include <optional>
 
-class TrianglePipeline
+namespace triangle
 {
-public:
-    struct PipelineConfig
+    class Pipeline
     {
-        const std::vector<vk::VertexInputBindingDescription>& bindingDescriptions{};
-        const std::vector<vk::VertexInputAttributeDescription>& attributeDescriptions{};
-        vk::PipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo;
-        vk::PipelineViewportStateCreateInfo viewportStateCreateInfo;
-        vk::PipelineRasterizationStateCreateInfo rasterizerStateCreateInfo;
-        vk::PipelineMultisampleStateCreateInfo multisampleStateCreateInfo;
-        std::optional<vk::PipelineDepthStencilStateCreateInfo> depthStenciStateCreateInfo;
-        vk::PipelineColorBlendStateCreateInfo colorBlendingStateCreateInfo;
-        std::optional<vk::PipelineDynamicStateCreateInfo> dynamicStateCreateInfo;
-        vk::PipelineLayout pipelineLayout;
-        vk::RenderPass renderPass;
+    public:
+        struct PipelineConfig
+        {
+            const std::vector<vk::VertexInputBindingDescription>& bindingDescriptions{};
+            const std::vector<vk::VertexInputAttributeDescription>& attributeDescriptions{};
+            vk::PipelineInputAssemblyStateCreateInfo inputAssemblyCreateInfo;
+            vk::PipelineViewportStateCreateInfo viewportStateCreateInfo;
+            vk::PipelineRasterizationStateCreateInfo rasterizerStateCreateInfo;
+            vk::PipelineMultisampleStateCreateInfo multisampleStateCreateInfo;
+            std::optional<vk::PipelineDepthStencilStateCreateInfo> depthStenciStateCreateInfo;
+            vk::PipelineColorBlendStateCreateInfo colorBlendingStateCreateInfo;
+            std::optional<vk::PipelineDynamicStateCreateInfo> dynamicStateCreateInfo;
+            vk::PipelineLayout pipelineLayout;
+            vk::RenderPass renderPass;
+        };
+
+        Pipeline(Device &device);
+        void createGraphicsPipeline(PipelineConfig &pipelineConfig, const char *vertFilePath, const char *fragFilePath);
+        ~Pipeline();
+
+        void bind(vk::CommandBuffer &commandBuffer);
+    private:
+
+        Device& device;
+
+        static std::vector<char> readFile(const char* filename);
+
+        vk::ShaderModule vertShaderModule, fragShaderModule;
+
+        vk::ShaderModule createShaderModule(const std::vector<char>& code);
+        vk::Pipeline pipeline;
     };
-
-    TrianglePipeline(TriangleDevice &device);
-    void createGraphicsPipeline(PipelineConfig &pipelineConfig, const char *vertFilePath, const char *fragFilePath);
-    ~TrianglePipeline();
-
-    void bind(vk::CommandBuffer &commandBuffer);
-private:
-
-    TriangleDevice& device;
-
-    static std::vector<char> readFile(const char* filename);
-
-    vk::ShaderModule vertShaderModule, fragShaderModule;
-
-    vk::ShaderModule createShaderModule(const std::vector<char>& code);
-    vk::Pipeline pipeline;
-};
+}

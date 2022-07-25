@@ -6,7 +6,7 @@
 
 int main(int, char**) 
 {
-    TriangleEngine engine;
+    Engine engine;
 
     try 
     {
