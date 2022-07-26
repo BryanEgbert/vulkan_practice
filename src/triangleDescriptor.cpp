@@ -81,7 +81,7 @@ namespace triangle
         {
             // dynamic UBO
             bufferInfos.push_back(vk::DescriptorBufferInfo(
-                buffers[i], 0, sizeof(Model::MVP)
+                buffers[i], 0, sizeof(MVP)
             ));
 
             imageInfos.push_back(vk::DescriptorImageInfo(

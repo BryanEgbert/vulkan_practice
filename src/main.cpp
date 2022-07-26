@@ -6,7 +6,7 @@
 
 int main(int, char**) 
 {
-    Engine engine;
+    triangle::Engine engine;
 
     try 
     {

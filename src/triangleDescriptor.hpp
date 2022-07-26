@@ -2,6 +2,7 @@
 
 #include "triangleDevice.hpp"
 #include "triangleSwapchain.hpp"
+#include "triangleTypes.hpp"
 
 #include <vulkan/vulkan.hpp>
 #include <vector>

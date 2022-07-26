@@ -32,7 +32,7 @@ namespace triangle
         }
     }
 
-    std::vector<vk::VertexInputBindingDescription> Model::Vertex::getBindingDesciptions()
+    std::vector<vk::VertexInputBindingDescription> Vertex::getBindingDesciptions()
     {
         std::vector<vk::VertexInputBindingDescription> bindingDescriptions;
         bindingDescriptions.reserve(1);
@@ -44,7 +44,7 @@ namespace triangle
         return bindingDescriptions;   
     }
 
-    std::vector<vk::VertexInputAttributeDescription> Model::Vertex::getAttributeDescriptions()
+    std::vector<vk::VertexInputAttributeDescription> Vertex::getAttributeDescriptions()
     {
         std::vector<vk::VertexInputAttributeDescription> attributeDescriptions;
         attributeDescriptions.reserve(3);
@@ -64,8 +64,13 @@ namespace triangle
         attributeDescription.setOffset(offsetof(Vertex, color));
         attributeDescriptions.push_back(attributeDescription);
 
-        // uv
+        // normal
         attributeDescription.setLocation(2);
+        attributeDescription.setOffset(offsetof(Vertex, normal));
+        attributeDescriptions.push_back(attributeDescription);
+
+        // uv
+        attributeDescription.setLocation(3);
         attributeDescription.setFormat(vk::Format::eR32G32Sfloat);
         attributeDescription.setOffset(offsetof(Vertex, uv));
         attributeDescriptions.push_back(attributeDescription);

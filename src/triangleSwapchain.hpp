@@ -84,7 +84,8 @@ namespace triangle
         void createUIRenderPass();
         void createFrameBuffers();
         void createSyncObject();
-        void loadTexture(const std::string& filename);
+        // void loadTextureFromBuffer
+        void loadTextureFromFile(const std::string& filename);
 
         vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
         vk::Format findDepthFormat();

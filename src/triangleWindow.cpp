@@ -33,13 +33,14 @@ namespace triangle
         glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
         glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
-        window = glfwCreateWindow(mode->width, mode->height, windowName, monitors[1], nullptr);
-        
+        // window = glfwCreateWindow(mode->width, mode->height, windowName, monitors[1], nullptr);
+        window = glfwCreateWindow(width, height, windowName, nullptr, nullptr);
+
         glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
         glfwSetWindowUserPointer(window, this);
         glfwSetFramebufferSizeCallback(window, frameBufferResizeCallback);
 
-        glfwSetWindowMonitor(window, monitors[1], 0, 0, mode->width, mode->height, mode->refreshRate);
+        glfwSetWindowMonitor(window, nullptr, 0, 0, mode->width, mode->height, mode->refreshRate);
     }
 
     void Window::initGlfwExtensions()

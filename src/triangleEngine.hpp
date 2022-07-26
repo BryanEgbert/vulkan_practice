@@ -8,6 +8,7 @@
 #include "triangleSwapchain.hpp"
 #include "triangleWindow.hpp"
 #include "triangleDescriptor.hpp"
+#include "triangleTypes.hpp"
 #include "triangleECS.hpp"
 
 #include <memory>
@@ -28,7 +29,7 @@ namespace triangle
         void run();
 
     private:
-        std::vector<Model::Vertex> squareVertices = {
+        std::vector<Vertex> squareVertices = {
             // position         ,   color            , uv
             {{-0.5f, -0.5f, 0.0f}, {0.5f, 0.0f, 0.0f}, {1.f, 0.f}},
             {{0.5f, -0.5f, 0.0f}, {0.5f, 0.0f, 0.0f}, {0.f, 0.f}},
@@ -36,7 +37,7 @@ namespace triangle
             {{-0.5f, 0.5f, 0.0f}, {0.5f, 0.0f, 0.0f}, {1.f, 1.f}}
         };
 
-        std::vector<Model::Vertex> cubeVertices = {
+        std::vector<Vertex> cubeVertices = {
             // Front
             {{-0.5f, -0.5f, -0.5f}, {0.5f, 0.0f, 0.0f}, {1.f, 0.f}},
             {{0.5f, -0.5f, -0.5f}, {0.4f, 0.0f, 0.0f}, {0.f, 0.f}},
@@ -69,7 +70,7 @@ namespace triangle
             {{-0.5f, 0.5f, 0.5f}, {0.6f, 0.2f, 0.5f}, {1.f, 1.f}},
         };
 
-        // std::vector<Model::Vertex> pyramidVertices = {
+        // std::vector<Vertex> pyramidVertices = {
         //     {{-0.5f, -0.5f, 0.5f}, {0.5f, 0.f, 0.f}},
         //     {{0.5f, -0.5f, 0.5f}, {0.5f, 0.f, 0.f}},
         //     {{0.f, 0.5f, 0.f}, {0.5f, 0.f, 0.f}},

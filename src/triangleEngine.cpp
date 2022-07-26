@@ -44,17 +44,17 @@ namespace triangle
     void Engine::run()
     {
         // Adding entity
-        Model::Mesh cubeMesh = Model::Mesh(cubeVertices, cubeIndices), 
-                            squareMesh = Model::Mesh(squareVertices, squareIndices);
-                            // pyramidMesh = Model::Mesh(pyramidVertices, pyramidIndices);
+        Mesh cubeMesh = Mesh(cubeVertices, cubeIndices), 
+                            squareMesh = Mesh(squareVertices, squareIndices);
+                            // pyramidMesh = Mesh(pyramidVertices, pyramidIndices);
 
-        Model::Transform cubeTransform, squareTransform, pyramidTransform;
+        Transform cubeTransform, squareTransform, pyramidTransform;
         squareTransform.position = glm::vec3(2.f, 2.f, 2.f);
         // pyramidTransform.position = glm::vec3(4.f, 4.f, 4.f);
 
-        Model::RenderModel cubeModel = Model::RenderModel(cubeMesh, cubeTransform),
-                                squareModel = Model::RenderModel(squareMesh, squareTransform);
-                                //    pyramidModel = Model::RenderModel(pyramidMesh, pyramidTransform)
+        RenderModel cubeModel = RenderModel(cubeMesh, cubeTransform),
+                                squareModel = RenderModel(squareMesh, squareTransform);
+                                //    pyramidModel = RenderModel(pyramidMesh, pyramidTransform)
 
         triangle::Entity cubeEntity = triangle::Entity(), 
                         squareEntity = triangle::Entity();
@@ -64,8 +64,8 @@ namespace triangle
         ecs.addEntity(squareEntity);
         // ecs.addEntity(pyramidEntity);
 
-        ecs.assignComponent<Model::RenderModel>(cubeEntity, cubeModel);
-        ecs.assignComponent<Model::RenderModel>(squareEntity, squareModel);
+        ecs.assignComponent<RenderModel>(cubeEntity, cubeModel);
+        ecs.assignComponent<RenderModel>(squareEntity, squareModel);
         // ecs.assignComponent<TriangleModel::RenderModel>(pyramidEntity, pyramidModel);
 
         triangleModel = std::make_unique<Model>(triangleDevice);
@@ -125,7 +125,7 @@ namespace triangle
             for (const auto &entity : ecs.getEntities())
             {
                 sprintf(entityID, "Entity %d", entity.id);
-                auto component = ecs.getComponent<Model::RenderModel>(entity);
+                auto component = ecs.getComponent<RenderModel>(entity);
                 if (component == nullptr) continue;
 
                 ImGui::BeginChild(entityID, ImVec2(0, 100.f), true);
@@ -165,7 +165,7 @@ namespace triangle
         vk::PushConstantRange pushConstant(
             vk::ShaderStageFlagBits::eVertex,
             0,
-            sizeof(Model::MeshPushConstant)
+            sizeof(MeshPushConstant)
         );
 
         std::array<vk::DescriptorSetLayout, 1> descriptorSetLayout = { triangleDescriptor->getDescriptorSetLayout() };
@@ -202,8 +202,8 @@ namespace triangle
         std::vector<vk::DynamicState> dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
 
         Pipeline::PipelineConfig pipelineConfig{
-            Model::Vertex::getBindingDesciptions(),
-            Model::Vertex::getAttributeDescriptions(),
+            Vertex::getBindingDesciptions(),
+            Vertex::getAttributeDescriptions(),
             vk::PipelineInputAssemblyStateCreateInfo(
                 vk::PipelineInputAssemblyStateCreateFlags(), 
                 vk::PrimitiveTopology::eTriangleList, false
@@ -262,11 +262,11 @@ namespace triangle
     void Engine::renderSystem(uint32_t currentImage, vk::CommandBuffer& currentCommandBuffer)
     {
         vk::DeviceSize dynamicOffset = 0;
+        vk::DeviceSize vertexOffset = 0, indexOffset = 0;
         for (const auto &entity : ecs.getEntities())
         {
-            if (auto component = ecs.getComponent<Model::RenderModel>(entity))
+            if (auto component = ecs.getComponent<RenderModel>(entity))
             {
-
                 dynamicOffset = (entity.id - 1) * triangleModel->getDynamicAlignment();
                 glm::mat4 transform = glm::translate(glm::mat4{1.0f}, component->transform.position);
 
@@ -291,13 +291,13 @@ namespace triangle
                                     sizeof(component->mesh.vertices[0]) * component->mesh.vertices.size() * (entity.id - 1),
                                     sizeof(component->mesh.indices[0]) * component->mesh.indices.size() * (entity.id - 1));
 
-                Model::MeshPushConstant push{};
+                MeshPushConstant push{};
                 // push.offset = {0.0f + (frame * 0.005f * entity.id * entity.id), 0.0f, 0.0f + (frame * 0.005f * entity.id * entity.id)};
                 // push.color = {0.0f, 0.0f + (frame * 0.005f), 0.0f + (frame * 0.0025f)};
                 push.offset = {0.f, 0.f, 0.f};
                 push.color = {0.f, 0.f, 0.f};
                 
-                currentCommandBuffer.pushConstants<Model::MeshPushConstant>(pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, push);
+                currentCommandBuffer.pushConstants<MeshPushConstant>(pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, push);
                 currentCommandBuffer.drawIndexed(static_cast<uint32_t>(component->mesh.indices.size()), 1, 0, 0, 0);
             }
         }
@@ -307,7 +307,7 @@ namespace triangle
     {
         auto entities = ecs.getEntities();
 
-        std::vector<std::vector<Model::Vertex>> vertexList{};
+        std::vector<std::vector<Vertex>> vertexList{};
         vertexList.reserve(entities.size());
 
         std::vector<std::vector<Index>> indexList{};
@@ -315,7 +315,7 @@ namespace triangle
 
         for (const auto& entity : entities)
         {
-            if (auto component = ecs.getComponent<Model::RenderModel>(entity))
+            if (auto component = ecs.getComponent<RenderModel>(entity))
             {
                 vertexList.push_back(component->mesh.vertices);
                 indexList.push_back(component->mesh.indices);

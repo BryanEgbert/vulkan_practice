@@ -13,6 +13,24 @@
 #include <vulkan/vulkan_handles.hpp>
 #include <vulkan/vulkan_structs.hpp>
 
+PFN_vkCreateDebugUtilsMessengerEXT pfnVkCreateDebugUtilsMessengerEXT;
+PFN_vkDestroyDebugUtilsMessengerEXT pfnVkDestroyDebugUtilsMessengerEXT;
+
+VKAPI_ATTR VkResult VKAPI_CALL vkCreateDebugUtilsMessengerEXT(  VkInstance instance,
+                                                                const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
+                                                                const VkAllocationCallbacks* pAllocator,
+                                                                VkDebugUtilsMessengerEXT* pMessenger)
+{
+    return pfnVkCreateDebugUtilsMessengerEXT(instance, pCreateInfo, pAllocator, pMessenger);
+}
+
+VKAPI_ATTR void VKAPI_CALL vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT messenger, VkAllocationCallbacks const* pAllocator)
+{
+    return pfnVkDestroyDebugUtilsMessengerEXT(instance, messenger, pAllocator);
+}
+
+
+
 namespace triangle
 {
     Device::Device(const char* appName, Window& window) 
@@ -33,23 +51,6 @@ namespace triangle
             instance.destroyDebugUtilsMessengerEXT(debugUtilsMessenger);
         instance.destroy();
     }
-
-    PFN_vkCreateDebugUtilsMessengerEXT pfnVkCreateDebugUtilsMessengerEXT;
-    PFN_vkDestroyDebugUtilsMessengerEXT pfnVkDestroyDebugUtilsMessengerEXT;
-
-    VKAPI_ATTR VkResult VKAPI_CALL vkCreateDebugUtilsMessengerEXT(  VkInstance instance,
-                                                                                    const VkDebugUtilsMessengerCreateInfoEXT* pCreateInfo,
-                                                                                    const VkAllocationCallbacks* pAllocator,
-                                                                                    VkDebugUtilsMessengerEXT* pMessenger)
-    {
-        return pfnVkCreateDebugUtilsMessengerEXT(instance, pCreateInfo, pAllocator, pMessenger);
-    }
-
-    VKAPI_ATTR void VKAPI_CALL vkDestroyDebugUtilsMessengerEXT(VkInstance instance, VkDebugUtilsMessengerEXT messenger, VkAllocationCallbacks const* pAllocator)
-    {
-        return pfnVkDestroyDebugUtilsMessengerEXT(instance, messenger, pAllocator);
-    }
-
 
     VKAPI_ATTR VkBool32 VKAPI_CALL Device::debugMessageFunc(VkDebugUtilsMessageSeverityFlagBitsEXT messageSeverity,
                                                         VkDebugUtilsMessageTypeFlagsEXT messageTypes,
@@ -182,8 +183,8 @@ namespace triangle
     {
         if (!Device::checkRequiredLayers(validationLayers))
         {
-        std::cout << "Cannot find required layer(s)" << std::endl;
-        exit( 1 );
+            std::cout << "Cannot find required layer(s)" << std::endl;
+            exit( 1 );
         }
 
         std::vector<const char*> instanceExtensions(window.glfwExtensions, window.glfwExtensions + window.glfwExtensionCount);

@@ -23,7 +23,7 @@ namespace triangle
         createUIRenderPass();
         createDepthResources();
         createFrameBuffers();
-        loadTexture("../textures/sample.ktx");
+        loadTextureFromFile("../textures/sample.ktx");
         createSyncObject();
     }
 
@@ -367,7 +367,7 @@ namespace triangle
             imageIndex);
     }
 
-    void Swapchain::loadTexture(const std::string &filename)
+    void Swapchain::loadTextureFromFile(const std::string &filename)
     {
         std::ifstream file;
         vk::Format format = vk::Format::eR8G8B8A8Srgb;
