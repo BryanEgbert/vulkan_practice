@@ -7,13 +7,6 @@ layout (location = 1) in vec3 inColor;
 layout (location = 2) in vec2 inUV;
 
 layout (location = 0) out vec3 fragColor;
-layout (location = 1) out vec2 fragUV;
-
-layout (push_constant) uniform constants
-{
-    vec3 offset;
-    vec3 color;
-} pushConstant;
 
 layout (binding = 0) uniform UniformBufferObject
 {
@@ -23,7 +16,6 @@ layout (binding = 0) uniform UniformBufferObject
 } ubo;
 
 void main() {
-    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition + pushConstant.offset, 1.0f);
-    fragColor = inColor + pushConstant.color;
-    fragUV = inUV;
+    gl_Position = ubo.proj * ubo.view * ubo.model * vec4(inPosition, 1.0f);
+    fragColor = inColor;
 }

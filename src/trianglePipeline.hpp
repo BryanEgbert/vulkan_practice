@@ -11,6 +11,7 @@
 
 namespace triangle
 {
+    static uint32_t modulesCreated = 0;
     class Pipeline
     {
     public:
@@ -30,7 +31,9 @@ namespace triangle
         };
 
         Pipeline(Device &device);
-        void createGraphicsPipeline(PipelineConfig &pipelineConfig, const char *vertFilePath, const char *fragFilePath);
+        vk::Pipeline createGraphicsPipeline(PipelineConfig &pipelineConfig, const char *vertFilePath, const char *fragFilePath);
+        vk::Pipeline createDefaultGraphicsPipeline(vk::PipelineLayout& layout, const vk::RenderPass& renderPass);
+        vk::Pipeline createTextureGraphicsPipeline(vk::PipelineLayout &layout, const vk::RenderPass &renderPass);
         ~Pipeline();
 
         void bind(vk::CommandBuffer &commandBuffer);
@@ -40,7 +43,7 @@ namespace triangle
 
         static std::vector<char> readFile(const char* filename);
 
-        vk::ShaderModule vertShaderModule, fragShaderModule;
+        std::vector<vk::ShaderModule> vertShaderModule, fragShaderModule;
 
         vk::ShaderModule createShaderModule(const std::vector<char>& code);
         vk::Pipeline pipeline;

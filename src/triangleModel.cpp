@@ -65,12 +65,12 @@ namespace triangle
         attributeDescriptions.push_back(attributeDescription);
 
         // normal
-        attributeDescription.setLocation(2);
-        attributeDescription.setOffset(offsetof(Vertex, normal));
-        attributeDescriptions.push_back(attributeDescription);
+        // attributeDescription.setLocation(2);
+        // attributeDescription.setOffset(offsetof(Vertex, normal));
+        // attributeDescriptions.push_back(attributeDescription);
 
         // uv
-        attributeDescription.setLocation(3);
+        attributeDescription.setLocation(2);
         attributeDescription.setFormat(vk::Format::eR32G32Sfloat);
         attributeDescription.setOffset(offsetof(Vertex, uv));
         attributeDescriptions.push_back(attributeDescription);

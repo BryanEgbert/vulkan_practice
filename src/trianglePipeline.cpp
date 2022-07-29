@@ -17,10 +17,12 @@ namespace triangle
 
     Pipeline::~Pipeline()
     {
-        device.getLogicalDevice().destroyShaderModule(fragShaderModule);
-        device.getLogicalDevice().destroyShaderModule(vertShaderModule);
+        for (auto& shaderModule : vertShaderModule)
+            device.getLogicalDevice().destroyShaderModule(shaderModule);
 
-        device.getLogicalDevice().destroyPipeline(pipeline);
+        for (auto &shaderModule : fragShaderModule)
+            device.getLogicalDevice().destroyShaderModule(shaderModule);
+
     }
 
     std::vector<char> Pipeline::readFile(const char* filename)
@@ -46,18 +48,17 @@ namespace triangle
         commandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, pipeline);
     }
 
-    void Pipeline::createGraphicsPipeline(PipelineConfig &pipelineConfig, const char *vertFilePath, const char *fragFilePath)
+    vk::Pipeline Pipeline::createGraphicsPipeline(PipelineConfig &pipelineConfig, const char *vertFilePath, const char *fragFilePath)
     {
         auto vertShaderCode = Pipeline::readFile(vertFilePath);
         auto fragShaderCode = Pipeline::readFile(fragFilePath);
 
-        vertShaderModule = createShaderModule(vertShaderCode);
-        fragShaderModule = createShaderModule(fragShaderCode);
+        vertShaderModule.push_back(createShaderModule(vertShaderCode));
+        fragShaderModule.push_back(createShaderModule(fragShaderCode));
 
         std::array<vk::PipelineShaderStageCreateInfo, 2> pipelineShaderStageCreateInfos = {
-            vk::PipelineShaderStageCreateInfo(vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eVertex, vertShaderModule, "main", nullptr),    
-            vk::PipelineShaderStageCreateInfo(vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eFragment,fragShaderModule,"main", nullptr)
-        };
+            vk::PipelineShaderStageCreateInfo(vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eVertex, vertShaderModule[modulesCreated], "main", nullptr),
+            vk::PipelineShaderStageCreateInfo(vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eFragment, fragShaderModule[modulesCreated], "main", nullptr)};
 
         vk::PipelineVertexInputStateCreateInfo vertexInputCreateInfo(
             vk::PipelineVertexInputStateCreateFlags(),
@@ -83,7 +84,223 @@ namespace triangle
 
         vk::Result result;
         std::tie(result, pipeline) = device.getLogicalDevice().createGraphicsPipeline(nullptr, pipelineCreateInfo);
-        // std::cout << "pipeline: " << material.pipeline << '\n'; 
+        modulesCreated++;
+
+        return pipeline;
+    }
+
+    vk::Pipeline Pipeline::createDefaultGraphicsPipeline(vk::PipelineLayout &layout, const vk::RenderPass &renderPass)
+    {
+        vk::Viewport viewport(0.0f, 0.0f, 0.f, 0.f, 0.0f, 1.0f);
+        vk::Rect2D scissor({0, 0}, {0, 0});
+
+        vk::ColorComponentFlags colorComponentFlags(vk::ColorComponentFlagBits::eR |
+                                                    vk::ColorComponentFlagBits::eG |
+                                                    vk::ColorComponentFlagBits::eB |
+                                                    vk::ColorComponentFlagBits::eA);
+
+        vk::PipelineColorBlendAttachmentState colorBlendAttachmentState(
+            false,
+            vk::BlendFactor::eOne,
+            vk::BlendFactor::eZero,
+            vk::BlendOp::eAdd,
+            vk::BlendFactor::eOne,
+            vk::BlendFactor::eZero,
+            vk::BlendOp::eAdd,
+            colorComponentFlags);
+
+        std::vector<vk::DynamicState> dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
+
+        Pipeline::PipelineConfig pipelineConfig{
+            Vertex::getBindingDesciptions(),
+            Vertex::getAttributeDescriptions(),
+            vk::PipelineInputAssemblyStateCreateInfo(
+                vk::PipelineInputAssemblyStateCreateFlags(),
+                vk::PrimitiveTopology::eTriangleList, false),
+            vk::PipelineViewportStateCreateInfo(
+                vk::PipelineViewportStateCreateFlags(), viewport, scissor),
+            vk::PipelineRasterizationStateCreateInfo(
+                vk::PipelineRasterizationStateCreateFlags(),
+                false,
+                false,
+                vk::PolygonMode::eFill,
+                vk::CullModeFlagBits::eNone,
+                vk::FrontFace::eCounterClockwise,
+                false,
+                0.0f,
+                0.0f,
+                0.0f,
+                1.0f),
+            vk::PipelineMultisampleStateCreateInfo(
+                vk::PipelineMultisampleStateCreateFlags(),
+                vk::SampleCountFlagBits::e1,
+                false,
+                1.0f,
+                nullptr,
+                false,
+                false),
+            vk::PipelineDepthStencilStateCreateInfo(
+                vk::PipelineDepthStencilStateCreateFlags(),
+                true,
+                true,
+                vk::CompareOp::eLess,
+                false,
+                false),
+            vk::PipelineColorBlendStateCreateInfo(
+                vk::PipelineColorBlendStateCreateFlags(),
+                false,
+                vk::LogicOp::eCopy,
+                colorBlendAttachmentState,
+                {{1.0f, 1.0f, 1.0f, 1.0f}}),
+            vk::PipelineDynamicStateCreateInfo(
+                vk::PipelineDynamicStateCreateFlags(),
+                dynamicStates),
+            layout,
+            renderPass};
+
+        auto vertShaderCode = Pipeline::readFile("../shaders/spv/defaultVert.spv");
+        auto fragShaderCode = Pipeline::readFile("../shaders/spv/defaultFrag.spv");
+
+        vertShaderModule.push_back(createShaderModule(vertShaderCode));
+        fragShaderModule.push_back(createShaderModule(fragShaderCode));
+
+        std::array<vk::PipelineShaderStageCreateInfo, 2> pipelineShaderStageCreateInfos = {
+            vk::PipelineShaderStageCreateInfo(vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eVertex, vertShaderModule[modulesCreated], "main", nullptr),
+            vk::PipelineShaderStageCreateInfo(vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eFragment, fragShaderModule[modulesCreated], "main", nullptr)};
+
+        vk::PipelineVertexInputStateCreateInfo vertexInputCreateInfo(
+            vk::PipelineVertexInputStateCreateFlags(),
+            pipelineConfig.bindingDescriptions,
+            pipelineConfig.attributeDescriptions);
+
+        vk::GraphicsPipelineCreateInfo pipelineCreateInfo(
+            vk::PipelineCreateFlags(),
+            pipelineShaderStageCreateInfos,
+            &vertexInputCreateInfo,
+            &pipelineConfig.inputAssemblyCreateInfo,
+            nullptr,
+            &pipelineConfig.viewportStateCreateInfo,
+            &pipelineConfig.rasterizerStateCreateInfo,
+            &pipelineConfig.multisampleStateCreateInfo,
+            pipelineConfig.depthStenciStateCreateInfo ? &pipelineConfig.depthStenciStateCreateInfo.value() : nullptr,
+            &pipelineConfig.colorBlendingStateCreateInfo,
+            pipelineConfig.dynamicStateCreateInfo ? &pipelineConfig.dynamicStateCreateInfo.value() : nullptr,
+            pipelineConfig.pipelineLayout,
+            pipelineConfig.renderPass);
+
+        vk::Result result;
+        std::tie(result, pipeline) = device.getLogicalDevice().createGraphicsPipeline(nullptr, pipelineCreateInfo);
+
+        modulesCreated++;
+
+        return pipeline;
+    }
+
+    vk::Pipeline Pipeline::createTextureGraphicsPipeline(vk::PipelineLayout &layout, const vk::RenderPass &renderPass)
+    {
+        vk::Viewport viewport(0.0f, 0.0f, 0.f, 0.f, 0.0f, 1.0f);
+        vk::Rect2D scissor({0, 0}, {0, 0});
+
+        vk::ColorComponentFlags colorComponentFlags(vk::ColorComponentFlagBits::eR |
+                                                    vk::ColorComponentFlagBits::eG |
+                                                    vk::ColorComponentFlagBits::eB |
+                                                    vk::ColorComponentFlagBits::eA);
+
+        vk::PipelineColorBlendAttachmentState colorBlendAttachmentState(
+            false,
+            vk::BlendFactor::eOne,
+            vk::BlendFactor::eZero,
+            vk::BlendOp::eAdd,
+            vk::BlendFactor::eOne,
+            vk::BlendFactor::eZero,
+            vk::BlendOp::eAdd,
+            colorComponentFlags);
+
+        std::vector<vk::DynamicState> dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
+
+        Pipeline::PipelineConfig pipelineConfig{
+            Vertex::getBindingDesciptions(),
+            Vertex::getAttributeDescriptions(),
+            vk::PipelineInputAssemblyStateCreateInfo(
+                vk::PipelineInputAssemblyStateCreateFlags(),
+                vk::PrimitiveTopology::eTriangleList, false),
+            vk::PipelineViewportStateCreateInfo(
+                vk::PipelineViewportStateCreateFlags(), viewport, scissor),
+            vk::PipelineRasterizationStateCreateInfo(
+                vk::PipelineRasterizationStateCreateFlags(),
+                false,
+                false,
+                vk::PolygonMode::eFill,
+                vk::CullModeFlagBits::eNone,
+                vk::FrontFace::eCounterClockwise,
+                false,
+                0.0f,
+                0.0f,
+                0.0f,
+                1.0f),
+            vk::PipelineMultisampleStateCreateInfo(
+                vk::PipelineMultisampleStateCreateFlags(),
+                vk::SampleCountFlagBits::e1,
+                false,
+                1.0f,
+                nullptr,
+                false,
+                false),
+            vk::PipelineDepthStencilStateCreateInfo(
+                vk::PipelineDepthStencilStateCreateFlags(),
+                true,
+                true,
+                vk::CompareOp::eLess,
+                false,
+                false),
+            vk::PipelineColorBlendStateCreateInfo(
+                vk::PipelineColorBlendStateCreateFlags(),
+                false,
+                vk::LogicOp::eCopy,
+                colorBlendAttachmentState,
+                {{1.0f, 1.0f, 1.0f, 1.0f}}),
+            vk::PipelineDynamicStateCreateInfo(
+                vk::PipelineDynamicStateCreateFlags(),
+                dynamicStates),
+            layout,
+            renderPass};
+
+        auto vertShaderCode = Pipeline::readFile("../shaders/spv/texturedVert.spv");
+        auto fragShaderCode = Pipeline::readFile("../shaders/spv/texturedFrag.spv");
+
+        vertShaderModule.push_back(createShaderModule(vertShaderCode));
+        fragShaderModule.push_back(createShaderModule(fragShaderCode));
+
+        std::array<vk::PipelineShaderStageCreateInfo, 2> pipelineShaderStageCreateInfos = {
+            vk::PipelineShaderStageCreateInfo(vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eVertex, vertShaderModule[modulesCreated], "main", nullptr),
+            vk::PipelineShaderStageCreateInfo(vk::PipelineShaderStageCreateFlags(), vk::ShaderStageFlagBits::eFragment, fragShaderModule[modulesCreated], "main", nullptr)};
+
+        vk::PipelineVertexInputStateCreateInfo vertexInputCreateInfo(
+            vk::PipelineVertexInputStateCreateFlags(),
+            pipelineConfig.bindingDescriptions,
+            pipelineConfig.attributeDescriptions);
+
+        vk::GraphicsPipelineCreateInfo pipelineCreateInfo(
+            vk::PipelineCreateFlags(),
+            pipelineShaderStageCreateInfos,
+            &vertexInputCreateInfo,
+            &pipelineConfig.inputAssemblyCreateInfo,
+            nullptr,
+            &pipelineConfig.viewportStateCreateInfo,
+            &pipelineConfig.rasterizerStateCreateInfo,
+            &pipelineConfig.multisampleStateCreateInfo,
+            pipelineConfig.depthStenciStateCreateInfo ? &pipelineConfig.depthStenciStateCreateInfo.value() : nullptr,
+            &pipelineConfig.colorBlendingStateCreateInfo,
+            pipelineConfig.dynamicStateCreateInfo ? &pipelineConfig.dynamicStateCreateInfo.value() : nullptr,
+            pipelineConfig.pipelineLayout,
+            pipelineConfig.renderPass);
+
+        vk::Result result;
+        std::tie(result, pipeline) = device.getLogicalDevice().createGraphicsPipeline(nullptr, pipelineCreateInfo);
+
+        modulesCreated++;
+
+        return pipeline;
     }
 
     vk::ShaderModule Pipeline::createShaderModule(const std::vector<char>& code)

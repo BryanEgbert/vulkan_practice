@@ -38,44 +38,49 @@ namespace triangle
     
     Engine::~Engine()
     {
-        triangleDevice.getLogicalDevice().destroyPipelineLayout(pipelineLayout);
+        for (auto& pipelineLayout : layouts)
+            triangleDevice.getLogicalDevice().destroyPipelineLayout(pipelineLayout);
+
+        for (auto& pipeline : pipelines)
+            triangleDevice.getLogicalDevice().destroyPipeline(pipeline);
     }
 
     void Engine::run()
     {
-        // Adding entity
-        Mesh cubeMesh = Mesh(cubeVertices, cubeIndices), 
-                            squareMesh = Mesh(squareVertices, squareIndices);
-                            // pyramidMesh = Mesh(pyramidVertices, pyramidIndices);
+        triangleModel = std::make_unique<Model>(triangleDevice);
+        triangleModel->createUniformBuffers(triangleRenderer.getMaxFramesInFlight(), 2);
+        triangleDescriptor = std::make_unique<Descriptor>(triangleDevice, triangleRenderer.getMaxFramesInFlight(), triangleModel->getUniformBuffers(), triangleRenderer.getTextureProperties());
+
+        // initEntities();
+        Mesh cubeMesh = Mesh(cubeVertices, cubeIndices),
+             squareMesh = Mesh(squareVertices, squareIndices);
 
         Transform cubeTransform, squareTransform, pyramidTransform;
         squareTransform.position = glm::vec3(2.f, 2.f, 2.f);
-        // pyramidTransform.position = glm::vec3(4.f, 4.f, 4.f);
 
-        RenderModel cubeModel = RenderModel(cubeMesh, cubeTransform),
-                                squareModel = RenderModel(squareMesh, squareTransform);
-                                //    pyramidModel = RenderModel(pyramidMesh, pyramidTransform)
+        vk::PipelineLayout defaultPipelineLayout = createPipelineLayout();
+        layouts.push_back(defaultPipelineLayout);
 
-        triangle::Entity cubeEntity = triangle::Entity(), 
-                        squareEntity = triangle::Entity();
-                        //  pyramidEntity = triangle::Entity()
+        vk::Pipeline defaultPipeline = trianglePipeline.createDefaultGraphicsPipeline(defaultPipelineLayout, triangleRenderer.getMainRenderPass());
+        pipelines.push_back(defaultPipeline);
+
+        vk::Pipeline texturedPipeline = trianglePipeline.createTextureGraphicsPipeline(defaultPipelineLayout, triangleRenderer.getMainRenderPass());
+        pipelines.push_back(texturedPipeline);
+
+        Material defaultMaterial{.pipelineLayout = defaultPipelineLayout, .pipeline = defaultPipeline},
+            textureMaterial{.pipelineLayout = defaultPipelineLayout, .pipeline = texturedPipeline};
+
+        RenderModel cubeModel = RenderModel(cubeMesh, cubeTransform, defaultMaterial),
+                    squareModel = RenderModel(squareMesh, squareTransform, textureMaterial);
+
+        triangle::Entity cubeEntity = triangle::Entity(),
+                         squareEntity = triangle::Entity();
 
         ecs.addEntity(cubeEntity);
         ecs.addEntity(squareEntity);
-        // ecs.addEntity(pyramidEntity);
 
         ecs.assignComponent<RenderModel>(cubeEntity, cubeModel);
         ecs.assignComponent<RenderModel>(squareEntity, squareModel);
-        // ecs.assignComponent<TriangleModel::RenderModel>(pyramidEntity, pyramidModel);
-
-        triangleModel = std::make_unique<Model>(triangleDevice);
-        triangleModel->createUniformBuffers(triangleRenderer.getMaxFramesInFlight(), ecs.getEntitySize());
-
-        triangleDescriptor = std::make_unique<Descriptor>(triangleDevice, triangleRenderer.getMaxFramesInFlight(), triangleModel->getUniformBuffers(), triangleRenderer.getTextureProperties());
-
-        createPipelineLayout();
-        createPipeline();
-
 
         triangleCamera = std::make_unique<TriangleCamera>(triangleWindow.getWindow(), WIDTH, HEIGHT);
         triangleCamera->setCamera(cameraPos, glm::vec3(0.f, 0.f, -1.f), glm::vec3(0.f, 1.f, 0.f));
@@ -100,8 +105,6 @@ namespace triangle
             {
                 triangleRenderer.beginRenderPass();
 
-                trianglePipeline.bind(currentCommandBuffer);
-
                 renderSystem(triangleRenderer.getCurrentFrame(), currentCommandBuffer);
 
                 triangleRenderer.endRenderpass();
@@ -114,6 +117,43 @@ namespace triangle
         triangleDevice.getLogicalDevice().waitIdle();
     }
 
+    void Engine::initEntities()
+    {
+        Mesh cubeMesh = Mesh(cubeVertices, cubeIndices),
+             squareMesh = Mesh(squareVertices, squareIndices);
+        // pyramidMesh = Mesh(pyramidVertices, pyramidIndices);
+
+        Transform cubeTransform, squareTransform, pyramidTransform;
+        squareTransform.position = glm::vec3(2.f, 2.f, 2.f);
+        // pyramidTransform.position = glm::vec3(4.f, 4.f, 4.f);
+
+        vk::PipelineLayout defaultPipelineLayout = createPipelineLayout();
+        layouts.push_back(defaultPipelineLayout);
+
+        vk::Pipeline defaultPipeline = trianglePipeline.createDefaultGraphicsPipeline(defaultPipelineLayout, triangleRenderer.getMainRenderPass());
+        pipelines.push_back(defaultPipeline);
+
+        vk::Pipeline texturedPipeline = trianglePipeline.createTextureGraphicsPipeline(defaultPipelineLayout, triangleRenderer.getMainRenderPass());
+        pipelines.push_back(texturedPipeline);
+
+        Material defaultMaterial{.pipelineLayout = defaultPipelineLayout, .pipeline = defaultPipeline},
+            textureMaterial{.pipelineLayout = defaultPipelineLayout, .pipeline = texturedPipeline};
+
+        RenderModel cubeModel = RenderModel(cubeMesh, cubeTransform, defaultMaterial),
+                    squareModel = RenderModel(squareMesh, squareTransform, textureMaterial);
+        //    pyramidModel = RenderModel(pyramidMesh, pyramidTransform)
+
+        triangle::Entity cubeEntity = triangle::Entity(),
+                         squareEntity = triangle::Entity();
+        //  pyramidEntity = triangle::Entity()
+
+        ecs.addEntity(cubeEntity);
+        ecs.addEntity(squareEntity);
+        // ecs.addEntity(pyramidEntity);
+
+        ecs.assignComponent<RenderModel>(cubeEntity, cubeModel);
+        ecs.assignComponent<RenderModel>(squareEntity, squareModel);
+    }
     void Engine::drawUI()
     {
         float velocity = 0.25f;
@@ -160,101 +200,22 @@ namespace triangle
         ImGui::ShowDemoWindow();
     }
 
-    void Engine::createPipelineLayout()
+    vk::PipelineLayout Engine::createPipelineLayout()
     {
-        vk::PushConstantRange pushConstant(
-            vk::ShaderStageFlagBits::eVertex,
-            0,
-            sizeof(MeshPushConstant)
-        );
-
         std::array<vk::DescriptorSetLayout, 1> descriptorSetLayout = { triangleDescriptor->getDescriptorSetLayout() };
 
         vk::PipelineLayoutCreateInfo pipelineLayoutCreateInfo(
             vk::PipelineLayoutCreateFlags(),
             descriptorSetLayout,
-            pushConstant
+            nullptr
         );
 
-        pipelineLayout = triangleDevice.getLogicalDevice().createPipelineLayout(pipelineLayoutCreateInfo);
+        return triangleDevice.getLogicalDevice().createPipelineLayout(pipelineLayoutCreateInfo);
     }
 
-    void Engine::createPipeline()
+    void Engine::createPipeline(Pipeline::PipelineConfig &pipelineConfig)
     {
-        vk::Viewport viewport(0.0f, 0.0f, 0.f, 0.f , 0.0f, 1.0f);
-        vk::Rect2D scissor({0, 0}, {0, 0});
-
-        vk::ColorComponentFlags colorComponentFlags(vk::ColorComponentFlagBits::eR | 
-                                                    vk::ColorComponentFlagBits::eG | 
-                                                    vk::ColorComponentFlagBits::eB | 
-                                                    vk::ColorComponentFlagBits::eA);
-
-        vk::PipelineColorBlendAttachmentState colorBlendAttachmentState(
-            false, 
-            vk::BlendFactor::eOne, 
-            vk::BlendFactor::eZero, 
-            vk::BlendOp::eAdd,
-            vk::BlendFactor::eOne,
-            vk::BlendFactor::eZero,
-            vk::BlendOp::eAdd, 
-            colorComponentFlags);
-
-        std::vector<vk::DynamicState> dynamicStates = {vk::DynamicState::eViewport, vk::DynamicState::eScissor};
-
-        Pipeline::PipelineConfig pipelineConfig{
-            Vertex::getBindingDesciptions(),
-            Vertex::getAttributeDescriptions(),
-            vk::PipelineInputAssemblyStateCreateInfo(
-                vk::PipelineInputAssemblyStateCreateFlags(), 
-                vk::PrimitiveTopology::eTriangleList, false
-            ),
-            vk::PipelineViewportStateCreateInfo(
-                vk::PipelineViewportStateCreateFlags(), viewport, scissor
-            ),
-            vk::PipelineRasterizationStateCreateInfo(
-                vk::PipelineRasterizationStateCreateFlags(), 
-                false, 
-                false, 
-                vk::PolygonMode::eFill, 
-                vk::CullModeFlagBits::eNone, 
-                vk::FrontFace::eCounterClockwise, 
-                false, 
-                0.0f, 
-                0.0f, 
-                0.0f, 
-                1.0f
-            ),
-            vk::PipelineMultisampleStateCreateInfo(
-                vk::PipelineMultisampleStateCreateFlags(),
-                vk::SampleCountFlagBits::e1, 
-                false, 
-                1.0f,
-                nullptr,
-                false,
-                false
-            ),
-            vk::PipelineDepthStencilStateCreateInfo(
-                vk::PipelineDepthStencilStateCreateFlags(),
-                true,
-                true, 
-                vk::CompareOp::eLess, 
-                false, 
-                false
-            ),
-            vk::PipelineColorBlendStateCreateInfo(
-                vk::PipelineColorBlendStateCreateFlags(),
-                false,
-                vk::LogicOp::eCopy,
-                colorBlendAttachmentState,
-                {{1.0f, 1.0f, 1.0f, 1.0f}}
-            ),
-            vk::PipelineDynamicStateCreateInfo(
-                vk::PipelineDynamicStateCreateFlags(),
-                dynamicStates
-            ),
-            pipelineLayout,
-            triangleRenderer.getMainRenderPass()
-        };
+        
 
         trianglePipeline.createGraphicsPipeline(pipelineConfig, "../shaders/vert.spv", "../shaders/frag.spv");
     }
@@ -263,11 +224,15 @@ namespace triangle
     {
         vk::DeviceSize dynamicOffset = 0;
         vk::DeviceSize vertexOffset = 0, indexOffset = 0;
+
+        static vk::Pipeline* lastPipeline = nullptr;
+        // trianglePipeline.bind(currentCommandBuffer);
+
         for (const auto &entity : ecs.getEntities())
         {
             if (auto component = ecs.getComponent<RenderModel>(entity))
             {
-                dynamicOffset = (entity.id - 1) * triangleModel->getDynamicAlignment();
+                // update uniforms
                 glm::mat4 transform = glm::translate(glm::mat4{1.0f}, component->transform.position);
 
                 cameraPos.x = sin(glfwGetTime()) * 10.0f;
@@ -284,21 +249,27 @@ namespace triangle
                 memcpy(data, &component->mesh.mvp, sizeof(component->mesh.mvp));
                 triangleDevice.getLogicalDevice().unmapMemory(triangleModel->getUniformBufferMemory(currentImage));
 
-                currentCommandBuffer.bindDescriptorSets(
-                    vk::PipelineBindPoint::eGraphics, pipelineLayout, 0, triangleDescriptor->getDescriptorSet(currentFrame), dynamicOffset);
-
-                triangleModel->bind(currentCommandBuffer,
-                                    sizeof(component->mesh.vertices[0]) * component->mesh.vertices.size() * (entity.id - 1),
-                                    sizeof(component->mesh.indices[0]) * component->mesh.indices.size() * (entity.id - 1));
-
                 MeshPushConstant push{};
                 // push.offset = {0.0f + (frame * 0.005f * entity.id * entity.id), 0.0f, 0.0f + (frame * 0.005f * entity.id * entity.id)};
                 // push.color = {0.0f, 0.0f + (frame * 0.005f), 0.0f + (frame * 0.0025f)};
                 push.offset = {0.f, 0.f, 0.f};
                 push.color = {0.f, 0.f, 0.f};
+
+                // Bind and draw
+                if (lastPipeline != std::addressof(component->material.pipeline))
+                    currentCommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, component->material.pipeline);
                 
-                currentCommandBuffer.pushConstants<MeshPushConstant>(pipelineLayout, vk::ShaderStageFlagBits::eVertex, 0, push);
+                currentCommandBuffer.bindDescriptorSets(
+                    vk::PipelineBindPoint::eGraphics, component->material.pipelineLayout, 0, triangleDescriptor->getDescriptorSet(currentFrame), dynamicOffset);
+
+                triangleModel->bind(currentCommandBuffer,
+                                    sizeof(component->mesh.vertices[0]) * component->mesh.vertices.size() * (entity.id - 1),
+                                    sizeof(component->mesh.indices[0]) * component->mesh.indices.size() * (entity.id - 1));
+
                 currentCommandBuffer.drawIndexed(static_cast<uint32_t>(component->mesh.indices.size()), 1, 0, 0, 0);
+
+                dynamicOffset = entity.id * triangleModel->getDynamicAlignment();
+                lastPipeline = std::addressof(component->material.pipeline);
             }
         }
     }
@@ -313,7 +284,7 @@ namespace triangle
         std::vector<std::vector<Index>> indexList{};
         indexList.reserve(entities.size());
 
-        for (const auto& entity : entities)
+        for (auto& entity : entities)
         {
             if (auto component = ecs.getComponent<RenderModel>(entity))
             {

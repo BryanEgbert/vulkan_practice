@@ -20,12 +20,50 @@ namespace triangle
 	{
 		glm::vec3 pos;
 		glm::vec3 color;
-		glm::vec3 normal;
+		// glm::vec3 normal;
 		glm::vec2 uv;
 
 		// Initialized in triangleModel.cpp
 		static std::vector<vk::VertexInputBindingDescription> getBindingDesciptions();
 		static std::vector<vk::VertexInputAttributeDescription> getAttributeDescriptions();
+	};
+
+	struct Mesh
+	{
+		std::vector<Vertex> vertices;
+		std::vector<Index> indices;
+		MVP mvp;
+
+		Mesh(std::vector<Vertex> &a_Vertices, std::vector<Index> &a_Indices) : vertices{a_Vertices}, indices{a_Indices} {};
+	};
+
+	struct Transform
+	{
+		glm::vec3 position = glm::vec3(0.f, 0.f, 0.f);
+		glm::vec3 rotation = glm::vec3(0.f, 0.f, 0.f);
+		glm::vec3 scale = glm::vec3(0.f, 0.f, 0.f);
+	};
+
+	struct Material
+	{
+		vk::PipelineLayout pipelineLayout = VK_NULL_HANDLE;
+		vk::Pipeline pipeline = VK_NULL_HANDLE;
+	};
+
+	struct RenderModel
+	{
+		Mesh &mesh;
+		Transform &transform;
+		Material &material;
+
+		RenderModel(Mesh& a_Mesh, Transform& a_Transform, Material& a_Material) 
+			: mesh{a_Mesh}, transform{a_Transform}, material{a_Material} {};
+	};
+
+	struct MeshPushConstant
+	{
+		alignas(16) glm::vec3 offset;
+		alignas(16) glm::vec3 color;
 	};
 
 	struct GLTF
@@ -65,41 +103,5 @@ namespace triangle
 		{
 			int32_t imageIndex;
 		};
-	};
-
-	struct Mesh
-	{
-		std::vector<Vertex> vertices;
-		std::vector<Index> indices;
-		MVP mvp;
-
-		Mesh(std::vector<Vertex> &a_Vertices, std::vector<Index> &a_Indices) : vertices{a_Vertices}, indices{a_Indices} {};
-	};
-
-	struct Transform
-	{
-		glm::vec3 position = glm::vec3(0.f, 0.f, 0.f);
-		glm::vec3 rotation = glm::vec3(0.f, 0.f, 0.f);
-		glm::vec3 scale = glm::vec3(0.f, 0.f, 0.f);
-	};
-
-	struct Material
-	{
-		vk::PipelineLayout pipelineLayout = VK_NULL_HANDLE;
-	};
-
-	struct RenderModel
-	{
-		Mesh &mesh;
-		Transform &transform;
-		// Material &material;
-
-		RenderModel(Mesh &a_Mesh, Transform &a_Transform) : mesh{a_Mesh}, transform{a_Transform} {};
-	};
-
-	struct MeshPushConstant
-	{
-		alignas(16) glm::vec3 offset;
-		alignas(16) glm::vec3 color;
 	};
 }

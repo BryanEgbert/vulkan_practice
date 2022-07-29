@@ -115,18 +115,22 @@ namespace triangle
         Renderer triangleRenderer{triangleDevice, triangleWindow};
         ECS ecs;
 
-        vk::PipelineLayout pipelineLayout;
+        // vk::PipelineLayout pipelineLayout;
 
         std::unique_ptr<Model> triangleModel;
         std::unique_ptr<Descriptor> triangleDescriptor;
         std::unique_ptr<TriangleCamera> triangleCamera;
 
-        void createPipelineLayout();
-        void createPipeline();
+        std::vector<vk::PipelineLayout> layouts;
+        std::vector<vk::Pipeline> pipelines;
+
+        vk::PipelineLayout createPipelineLayout();
+        void createPipeline(Pipeline::PipelineConfig& pipelineConfig);
 
         void initSceneSystem();
         void mvpSystem(uint32_t currentImage);
         void renderSystem(uint32_t currentImage, vk::CommandBuffer &currentCommandBuffer);
+        void initEntities();
 
         void drawUI();
     };
