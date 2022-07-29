@@ -4,10 +4,18 @@
 #include <vulkan/vulkan.hpp>
 
 #include <vector>
+#include <iostream>
 
 namespace triangle
 {
 	using Index = uint32_t;
+
+	enum TextureType
+	{
+		NONE,
+		TEXTURE_TYPE_2D,
+		TEXTURE_TYPE_CUBEMAP
+	};
 
 	struct MVP
 	{

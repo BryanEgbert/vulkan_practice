@@ -2,6 +2,7 @@
 
 #include "triangleDevice.hpp"
 #include "triangleWindow.hpp"
+#include "triangleTypes.hpp"
 
 #include <vulkan/vulkan.hpp>
 
@@ -85,7 +86,7 @@ namespace triangle
         void createFrameBuffers();
         void createSyncObject();
         // void loadTextureFromBuffer
-        void loadTextureFromFile(const std::string& filename);
+        void loadTextureFromFile(const char* filename, TextureType textureType);
 
         vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
         vk::Format findDepthFormat();

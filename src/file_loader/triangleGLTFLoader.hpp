@@ -4,7 +4,7 @@
 #define STB_IMAGE_IMPLEMENTATION
 #define TINYGLTF_NO_STB_IMAGE_WRITE
 
-#include "../triangleTypes.hpp";
+#include "../triangleTypes.hpp"
 #include <tinygltf/tiny_gltf.h>
 
 namespace triangle

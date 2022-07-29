@@ -249,12 +249,6 @@ namespace triangle
                 memcpy(data, &component->mesh.mvp, sizeof(component->mesh.mvp));
                 triangleDevice.getLogicalDevice().unmapMemory(triangleModel->getUniformBufferMemory(currentImage));
 
-                MeshPushConstant push{};
-                // push.offset = {0.0f + (frame * 0.005f * entity.id * entity.id), 0.0f, 0.0f + (frame * 0.005f * entity.id * entity.id)};
-                // push.color = {0.0f, 0.0f + (frame * 0.005f), 0.0f + (frame * 0.0025f)};
-                push.offset = {0.f, 0.f, 0.f};
-                push.color = {0.f, 0.f, 0.f};
-
                 // Bind and draw
                 if (lastPipeline != std::addressof(component->material.pipeline))
                     currentCommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, component->material.pipeline);
@@ -265,6 +259,7 @@ namespace triangle
                 triangleModel->bind(currentCommandBuffer,
                                     sizeof(component->mesh.vertices[0]) * component->mesh.vertices.size() * (entity.id - 1),
                                     sizeof(component->mesh.indices[0]) * component->mesh.indices.size() * (entity.id - 1));
+                // triangleModel->bindIndexBuffer(currentCommandBuffer, indexOffset);
 
                 currentCommandBuffer.drawIndexed(static_cast<uint32_t>(component->mesh.indices.size()), 1, 0, 0, 0);
 

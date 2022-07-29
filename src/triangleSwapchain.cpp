@@ -23,7 +23,8 @@ namespace triangle
         createUIRenderPass();
         createDepthResources();
         createFrameBuffers();
-        loadTextureFromFile("../textures/sample.ktx");
+        loadTextureFromFile("../textures/sample.ktx", TextureType::TEXTURE_TYPE_2D);
+        // loadTextureFromFile("../textures/cubemap.ktx", TextureType::TEXTURE_TYPE_CUBEMAP);
         createSyncObject();
     }
 
@@ -367,8 +368,11 @@ namespace triangle
             imageIndex);
     }
 
-    void Swapchain::loadTextureFromFile(const std::string &filename)
+    void Swapchain::loadTextureFromFile(const char* filename, TextureType textureType = TextureType::NONE)
     {
+        if (textureType == TextureType::NONE)
+            throw std::runtime_error("loadTextureFile argument of 'textureType' must not be NONE");
+            
         std::ifstream file;
         vk::Format format = vk::Format::eR8G8B8A8Srgb;
 
@@ -380,7 +384,7 @@ namespace triangle
             throw std::runtime_error("Cannot open image file");
         file.close();
 
-        ktxResult = ktxTexture_CreateFromNamedFile(filename.c_str(), KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
+        ktxResult = ktxTexture_CreateFromNamedFile(filename, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
         assert(ktxResult == KTX_SUCCESS);
 
         textureProperties.width = ktxTexture->baseWidth;
@@ -434,16 +438,23 @@ namespace triangle
         }
 
         vk::ImageCreateInfo imageCreateInfo(
-            vk::ImageCreateFlags(),
-            vk::ImageType::e2D,
-            format,
-            {textureProperties.width, textureProperties.height, 1},
-            textureProperties.mipLevels,
-            1,
-            vk::SampleCountFlagBits::e1,
-            vk::ImageTiling::eOptimal,
-            vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled, 
-            vk::SharingMode::eExclusive);
+            vk::ImageCreateFlags(),                                                     // Flags
+            vk::ImageType::e2D,                                                         // ImageType
+            format,                                                                     // Format
+            {textureProperties.width, textureProperties.height, 1},                     // Extent
+            textureProperties.mipLevels,                                                // Miplevel
+            1,                                                                          // Arraylayers
+            vk::SampleCountFlagBits::e1,                                                // Sample count
+            vk::ImageTiling::eOptimal,                                                  // Image Tiling
+            vk::ImageUsageFlagBits::eTransferDst | vk::ImageUsageFlagBits::eSampled,    // Usage 
+            vk::SharingMode::eExclusive);                                               // Sharing Mode
+
+        if (textureType == TextureType::TEXTURE_TYPE_CUBEMAP)
+        {
+            imageCreateInfo.arrayLayers = 6;
+            imageCreateInfo.flags = vk::ImageCreateFlagBits::eCubeCompatible;
+        }
+
 
         textureProperties.image = device.getLogicalDevice().createImage(imageCreateInfo);
 
@@ -510,6 +521,13 @@ namespace triangle
                                             vk::BorderColor::eFloatOpaqueWhite, 
                                             false);
 
+        if (textureType == TextureType::TEXTURE_TYPE_CUBEMAP)
+        {
+            samplerCreateInfo.addressModeU = vk::SamplerAddressMode::eClampToEdge;
+            samplerCreateInfo.addressModeV = vk::SamplerAddressMode::eClampToEdge;
+            samplerCreateInfo.addressModeW = vk::SamplerAddressMode::eClampToEdge;
+        }
+
         textureProperties.sampler = device.getLogicalDevice().createSampler(samplerCreateInfo);
 
         vk::ImageViewCreateInfo imageViewCreateInfo(vk::ImageViewCreateFlags(), 
@@ -518,6 +536,12 @@ namespace triangle
                                                     format, 
                                                     {vk::ComponentSwizzle::eR, vk::ComponentSwizzle::eG, vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA},
                                                     {vk::ImageAspectFlagBits::eColor, 0, textureProperties.mipLevels, 0, 1});
+
+        if (textureType == TextureType::TEXTURE_TYPE_CUBEMAP)
+        {
+            imageViewCreateInfo.viewType = vk::ImageViewType::eCube;
+            imageViewCreateInfo.subresourceRange.layerCount = 6;
+        }
 
         textureProperties.imageView = device.getLogicalDevice().createImageView(imageViewCreateInfo);
     }
