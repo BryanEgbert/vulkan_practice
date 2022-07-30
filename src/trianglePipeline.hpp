@@ -34,6 +34,10 @@ namespace triangle
         vk::Pipeline createGraphicsPipeline(PipelineConfig &pipelineConfig, const char *vertFilePath, const char *fragFilePath);
         vk::Pipeline createDefaultGraphicsPipeline(vk::PipelineLayout& layout, const vk::RenderPass& renderPass);
         vk::Pipeline createTextureGraphicsPipeline(vk::PipelineLayout &layout, const vk::RenderPass &renderPass);
+        vk::Pipeline createCubemapGraphicsPipeline(vk::PipelineLayout &layout, const vk::RenderPass &renderPass);
+        vk::Pipeline createWireframeDefaultGraphicsPipeline(vk::PipelineLayout &layout, const vk::RenderPass &renderPass);
+        vk::Pipeline createWireframeTexturedGraphicsPipeline(vk::PipelineLayout &layout, const vk::RenderPass &renderPass);
+
         ~Pipeline();
 
         void bind(vk::CommandBuffer &commandBuffer);

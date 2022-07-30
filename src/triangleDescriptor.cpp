@@ -11,7 +11,6 @@ namespace triangle
     {
         createDescriptorSetLayout();
         createDescriptorPool();
-        createDescriptorSets(buffers, textureProperties);
     }
 
     Descriptor::~Descriptor()
@@ -28,7 +27,7 @@ namespace triangle
 
         vk::DescriptorPoolCreateInfo descriptorPoolCreateInfo(
             vk::DescriptorPoolCreateFlags(),
-            descriptorCount,
+            descriptorCount * 2,
             poolSize
         );
 
@@ -100,6 +99,44 @@ namespace triangle
 
             device.getLogicalDevice().updateDescriptorSets(descriptorWrites[i], nullptr);
         }
+    }
 
+    void Descriptor::createCubemapDescriptorSets(const std::vector<vk::Buffer> &buffers, const Swapchain::Texture &textureProperties)
+    {
+        std::vector<vk::DescriptorSetLayout> layouts(descriptorCount, descriptorSetLayout);
+        vk::DescriptorSetAllocateInfo allocInfo(descriptorPool, layouts);
+
+        cubemapDescriptorSets.reserve(descriptorCount);
+
+        cubemapDescriptorSets = device.getLogicalDevice().allocateDescriptorSets(allocInfo);
+
+        std::vector<vk::DescriptorBufferInfo> bufferInfos;
+        bufferInfos.reserve(descriptorCount);
+
+        std::vector<vk::DescriptorImageInfo> imageInfos;
+        imageInfos.reserve(descriptorCount);
+
+        std::vector<vk::WriteDescriptorSet> descriptorWrites;
+        descriptorWrites.reserve(descriptorCount * 2);
+
+        for (int i = 0; i < descriptorCount; ++i)
+        {
+            // dynamic UBO
+            bufferInfos.push_back(vk::DescriptorBufferInfo(
+                buffers[i], 0, sizeof(MVP)));
+
+            imageInfos.push_back(vk::DescriptorImageInfo(
+                textureProperties.sampler, textureProperties.imageView, textureProperties.imageLayout));
+
+            // Binding 0: Vertex shader dynamic UBO
+            descriptorWrites.push_back(vk::WriteDescriptorSet(
+                cubemapDescriptorSets[i], 0, 0, vk::DescriptorType::eUniformBufferDynamic, {}, bufferInfos));
+
+            // Binding 1: texture
+            descriptorWrites.push_back(vk::WriteDescriptorSet(
+                cubemapDescriptorSets[i], 1, 0, vk::DescriptorType::eCombinedImageSampler, imageInfos));
+
+            device.getLogicalDevice().updateDescriptorSets(descriptorWrites[i], nullptr);
+        }
     }
 }

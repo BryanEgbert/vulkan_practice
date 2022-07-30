@@ -32,6 +32,7 @@
 #include <chrono>
 
 static uint32_t frame = 0;
+static bool enableWireframe = false;
 
 namespace triangle
 {
@@ -49,13 +50,17 @@ namespace triangle
     {
         triangleModel = std::make_unique<Model>(triangleDevice);
         triangleModel->createUniformBuffers(triangleRenderer.getMaxFramesInFlight(), 2);
-        triangleDescriptor = std::make_unique<Descriptor>(triangleDevice, triangleRenderer.getMaxFramesInFlight(), triangleModel->getUniformBuffers(), triangleRenderer.getTextureProperties());
 
-        // initEntities();
+        triangleDescriptor = std::make_unique<Descriptor>(triangleDevice, triangleRenderer.getMaxFramesInFlight(), triangleModel->getUniformBuffers(), triangleRenderer.get2DTextureProperties());
+        triangleDescriptor->createDescriptorSets(triangleModel->getUniformBuffers(), triangleRenderer.get2DTextureProperties());
+        triangleDescriptor->createCubemapDescriptorSets(triangleModel->getCubemapUniformBuffers(), triangleRenderer.getCubemapTextureProperties());
+
         Mesh cubeMesh = Mesh(cubeVertices, cubeIndices),
-             squareMesh = Mesh(squareVertices, squareIndices);
+             squareMesh = Mesh(squareVertices, squareIndices),
+             skyboxMesh = Mesh(skyboxVertices, skyboxIndices);
 
-        Transform cubeTransform, squareTransform, pyramidTransform;
+
+        Transform cubeTransform, squareTransform, skyboxTransform;
         squareTransform.position = glm::vec3(2.f, 2.f, 2.f);
 
         vk::PipelineLayout defaultPipelineLayout = createPipelineLayout();
@@ -67,11 +72,29 @@ namespace triangle
         vk::Pipeline texturedPipeline = trianglePipeline.createTextureGraphicsPipeline(defaultPipelineLayout, triangleRenderer.getMainRenderPass());
         pipelines.push_back(texturedPipeline);
 
-        Material defaultMaterial{.pipelineLayout = defaultPipelineLayout, .pipeline = defaultPipeline},
-            textureMaterial{.pipelineLayout = defaultPipelineLayout, .pipeline = texturedPipeline};
+        vk::Pipeline cubemapPipeline = trianglePipeline.createCubemapGraphicsPipeline(defaultPipelineLayout, triangleRenderer.getMainRenderPass());
+        pipelines.push_back(cubemapPipeline);
+
+        vk::Pipeline wireframeDefaultPipeline = trianglePipeline.createWireframeDefaultGraphicsPipeline(defaultPipelineLayout, triangleRenderer.getMainRenderPass());
+        pipelines.push_back(wireframeDefaultPipeline);
+
+        vk::Pipeline wireframeTexturedPipeline = trianglePipeline.createWireframeTexturedGraphicsPipeline(defaultPipelineLayout, triangleRenderer.getMainRenderPass());
+        pipelines.push_back(wireframeTexturedPipeline);
+
+        Material    defaultMaterial{.pipelineLayout = defaultPipelineLayout, .solidPipeline = defaultPipeline, .wireframePipeline = wireframeDefaultPipeline},
+                    textureMaterial{.pipelineLayout = defaultPipelineLayout, .solidPipeline = texturedPipeline, .wireframePipeline = wireframeTexturedPipeline},
+                    cubemapMaterial{.pipelineLayout = defaultPipelineLayout, .solidPipeline = cubemapPipeline};
+
+        Transform cubemapTransform = Transform();
+
+        skyboxObject.mesh = &skyboxMesh;
+        skyboxObject.material = &cubemapMaterial;
+        skyboxObject.transform = &cubemapTransform;
 
         RenderModel cubeModel = RenderModel(cubeMesh, cubeTransform, defaultMaterial),
                     squareModel = RenderModel(squareMesh, squareTransform, textureMaterial);
+
+        static RenderModel skyboxObject = RenderModel(skyboxMesh, skyboxTransform, cubemapMaterial);
 
         triangle::Entity cubeEntity = triangle::Entity(),
                          squareEntity = triangle::Entity();
@@ -136,8 +159,8 @@ namespace triangle
         vk::Pipeline texturedPipeline = trianglePipeline.createTextureGraphicsPipeline(defaultPipelineLayout, triangleRenderer.getMainRenderPass());
         pipelines.push_back(texturedPipeline);
 
-        Material defaultMaterial{.pipelineLayout = defaultPipelineLayout, .pipeline = defaultPipeline},
-            textureMaterial{.pipelineLayout = defaultPipelineLayout, .pipeline = texturedPipeline};
+        Material defaultMaterial{.pipelineLayout = defaultPipelineLayout, .solidPipeline = defaultPipeline},
+            textureMaterial{.pipelineLayout = defaultPipelineLayout, .solidPipeline = texturedPipeline};
 
         RenderModel cubeModel = RenderModel(cubeMesh, cubeTransform, defaultMaterial),
                     squareModel = RenderModel(squareMesh, squareTransform, textureMaterial);
@@ -194,6 +217,7 @@ namespace triangle
         if (ImGui::Begin("Device Properties"))
         {
             ImGui::Text("UBO dynamic offset: %d", triangleModel->getDynamicAlignment());
+            ImGui::Checkbox("Wireframe", &enableWireframe);
         }
         ImGui::End();
 
@@ -215,8 +239,6 @@ namespace triangle
 
     void Engine::createPipeline(Pipeline::PipelineConfig &pipelineConfig)
     {
-        
-
         trianglePipeline.createGraphicsPipeline(pipelineConfig, "../shaders/vert.spv", "../shaders/frag.spv");
     }
 
@@ -226,45 +248,64 @@ namespace triangle
         vk::DeviceSize vertexOffset = 0, indexOffset = 0;
 
         static vk::Pipeline* lastPipeline = nullptr;
-        // trianglePipeline.bind(currentCommandBuffer);
 
         for (const auto &entity : ecs.getEntities())
         {
-            if (auto component = ecs.getComponent<RenderModel>(entity))
+            if (auto renderComponent = ecs.getComponent<RenderModel>(entity))
             {
                 // update uniforms
-                glm::mat4 transform = glm::translate(glm::mat4{1.0f}, component->transform.position);
+                glm::mat4 transform = glm::translate(glm::mat4{1.0f}, renderComponent->transform.position);
 
                 cameraPos.x = sin(glfwGetTime()) * 10.0f;
                 cameraPos.z = cos(glfwGetTime()) * 10.0f;
 
-                component->mesh.mvp.model = transform;
-                component->mesh.mvp.view = triangleCamera->getView();
-                component->mesh.mvp.proj = glm::perspective(glm::radians(45.0f), triangleRenderer.getAspectRatio(), 0.1f, 20.0f);
+                renderComponent->mesh.mvp.model = transform;
+                renderComponent->mesh.mvp.view = triangleCamera->getView();
+                renderComponent->mesh.mvp.proj = glm::perspective(glm::radians(45.0f), triangleRenderer.getAspectRatio(), 0.1f, 100.0f);
 
-                component->mesh.mvp.proj[1][1] *= -1;
+                renderComponent->mesh.mvp.proj[1][1] *= -1;
 
                 void *data;
-                data = triangleDevice.getLogicalDevice().mapMemory(triangleModel->getUniformBufferMemory(currentImage), dynamicOffset, sizeof(component->mesh.mvp));
-                memcpy(data, &component->mesh.mvp, sizeof(component->mesh.mvp));
+                data = triangleDevice.getLogicalDevice().mapMemory(triangleModel->getUniformBufferMemory(currentImage), dynamicOffset, sizeof(renderComponent->mesh.mvp));
+                memcpy(data, &renderComponent->mesh.mvp, sizeof(renderComponent->mesh.mvp));
                 triangleDevice.getLogicalDevice().unmapMemory(triangleModel->getUniformBufferMemory(currentImage));
 
+                // skyboxObject.mesh->mvp.view = glm::mat4(glm::mat3(triangleCamera->getView()));
+                skyboxObject.mesh->mvp.view = glm::mat4(glm::mat3(triangleCamera->getView()));
+                skyboxObject.mesh->mvp.proj = glm::perspective(glm::radians(45.0f), triangleRenderer.getAspectRatio(), 0.1f, 100.0f);
+
+                data = triangleDevice.getLogicalDevice().mapMemory(triangleModel->getCubemapUniformBufferMemory(currentImage), 0, sizeof(skyboxObject.mesh->mvp));
+                memcpy(data, &skyboxObject.mesh->mvp, sizeof(skyboxObject.mesh->mvp));
+                triangleDevice.getLogicalDevice().unmapMemory(triangleModel->getCubemapUniformBufferMemory(currentImage));
+
                 // Bind and draw
-                if (lastPipeline != std::addressof(component->material.pipeline))
-                    currentCommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, component->material.pipeline);
+                if (lastPipeline != std::addressof(renderComponent->material.solidPipeline))
+                    currentCommandBuffer.bindPipeline(
+                        vk::PipelineBindPoint::eGraphics, 
+                        (enableWireframe == false) ? renderComponent->material.solidPipeline : renderComponent->material.wireframePipeline);
                 
+                // Bind 3D object
                 currentCommandBuffer.bindDescriptorSets(
-                    vk::PipelineBindPoint::eGraphics, component->material.pipelineLayout, 0, triangleDescriptor->getDescriptorSet(currentFrame), dynamicOffset);
+                    vk::PipelineBindPoint::eGraphics, renderComponent->material.pipelineLayout, 0, triangleDescriptor->getDescriptorSet(currentFrame), dynamicOffset);
 
                 triangleModel->bind(currentCommandBuffer,
-                                    sizeof(component->mesh.vertices[0]) * component->mesh.vertices.size() * (entity.id - 1),
-                                    sizeof(component->mesh.indices[0]) * component->mesh.indices.size() * (entity.id - 1));
-                // triangleModel->bindIndexBuffer(currentCommandBuffer, indexOffset);
+                                    sizeof(renderComponent->mesh.vertices[0]) * renderComponent->mesh.vertices.size() * (entity.id - 1),
+                                    sizeof(renderComponent->mesh.indices[0]) * renderComponent->mesh.indices.size() * (entity.id - 1));
 
-                currentCommandBuffer.drawIndexed(static_cast<uint32_t>(component->mesh.indices.size()), 1, 0, 0, 0);
+
+                currentCommandBuffer.drawIndexed(static_cast<uint32_t>(renderComponent->mesh.indices.size()), 1, 0, 0, 0);
+
+                // Bind skybox
+                currentCommandBuffer.bindDescriptorSets(
+                    vk::PipelineBindPoint::eGraphics, skyboxObject.material->pipelineLayout, 0, triangleDescriptor->getCubemapDescriptorSet(currentFrame), {0});
+
+                triangleModel->bind(currentCommandBuffer, 0, 0);
+                currentCommandBuffer.bindPipeline(vk::PipelineBindPoint::eGraphics, skyboxObject.material->solidPipeline);
+
+                currentCommandBuffer.drawIndexed(static_cast<uint32_t>(skyboxObject.mesh->indices.size()), 1, 0, 0, 0);
 
                 dynamicOffset = entity.id * triangleModel->getDynamicAlignment();
-                lastPipeline = std::addressof(component->material.pipeline);
+                lastPipeline = std::addressof(renderComponent->material.solidPipeline);
             }
         }
     }

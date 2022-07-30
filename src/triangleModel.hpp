@@ -19,8 +19,12 @@ namespace triangle
         Model(Device& device);
         ~Model();
 
-        std::vector<vk::Buffer> getUniformBuffers() { return uniformBuffers; };
-        vk::DeviceMemory getUniformBufferMemory(int index) { return uniformBufferMemories[index]; };
+        std::vector<vk::Buffer> getUniformBuffers() { return gameObjectUniformBuffers; };
+        vk::DeviceMemory getUniformBufferMemory(int index) { return gameObjectUniformBufferMemories[index]; };
+
+        std::vector<vk::Buffer> getCubemapUniformBuffers() { return cubemapUniformBuffers; };
+        vk::DeviceMemory getCubemapUniformBufferMemory(int index) { return cubemapUniformBufferMemories[index]; };
+
         vk::DeviceSize getDynamicAlignment() { return dynamicAlignment; }
 
         void bind(vk::CommandBuffer &commandBuffer, const vk::DeviceSize &vertexOffset, const vk::DeviceSize &indexOffset);
@@ -38,8 +42,8 @@ namespace triangle
         vk::Buffer vertexBuffer = VK_NULL_HANDLE, indexBuffer = VK_NULL_HANDLE;
         vk::DeviceMemory vertexBufferMemory, indexBufferMemory;
 
-        std::vector<vk::Buffer> uniformBuffers;
-        std::vector<vk::DeviceMemory> uniformBufferMemories;
+        std::vector<vk::Buffer> gameObjectUniformBuffers, cubemapUniformBuffers;
+        std::vector<vk::DeviceMemory> gameObjectUniformBufferMemories, cubemapUniformBufferMemories;
 
         void* data;
 

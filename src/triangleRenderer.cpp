@@ -78,7 +78,7 @@ namespace triangle
         initInfo.ImageCount = swapchain->getMinImageCount();
         initInfo.MSAASamples = VK_SAMPLE_COUNT_1_BIT;
 
-        ImGui_ImplVulkan_Init(&initInfo, swapchain->getUIRenderPass());
+        ImGui_ImplVulkan_Init(&initInfo, static_cast<VkRenderPass>(swapchain->getUIRenderPass()));
 
         std::array<vk::CommandBuffer, 1> tempCommandBuffer;
 
@@ -242,7 +242,7 @@ namespace triangle
 
         uiCommandBuffers[currentFrame].beginRenderPass(renderPassBeginInfo, vk::SubpassContents::eInline);
 
-        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), uiCommandBuffers[currentFrame]);
+        ImGui_ImplVulkan_RenderDrawData(ImGui::GetDrawData(), static_cast<VkCommandBuffer>(uiCommandBuffers[currentFrame]));
 
         uiCommandBuffers[currentFrame].endRenderPass();
         uiCommandBuffers[currentFrame].end();

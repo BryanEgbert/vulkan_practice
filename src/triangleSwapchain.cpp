@@ -23,18 +23,22 @@ namespace triangle
         createUIRenderPass();
         createDepthResources();
         createFrameBuffers();
-        loadTextureFromFile("../textures/sample.ktx", TextureType::TEXTURE_TYPE_2D);
-        // loadTextureFromFile("../textures/cubemap.ktx", TextureType::TEXTURE_TYPE_CUBEMAP);
+        loadTextureFromFile("../textures/sample.ktx", textureProperties, TextureType::TEXTURE_TYPE_2D);
+        loadTextureFromFile("../textures/cubemap.ktx", cubemapProperties, TextureType::TEXTURE_TYPE_CUBEMAP);
         createSyncObject();
     }
 
     Swapchain::~Swapchain()
     {
         device.getLogicalDevice().destroySampler(textureProperties.sampler);
-
         device.getLogicalDevice().destroyImage(textureProperties.image);
         device.getLogicalDevice().destroyImageView(textureProperties.imageView);
         device.getLogicalDevice().freeMemory(textureProperties.deviceMemory);
+
+        device.getLogicalDevice().destroySampler(cubemapProperties.sampler);
+        device.getLogicalDevice().destroyImage(cubemapProperties.image);
+        device.getLogicalDevice().destroyImageView(cubemapProperties.imageView);
+        device.getLogicalDevice().freeMemory(cubemapProperties.deviceMemory);
 
         device.getLogicalDevice().destroyImage(depthImage);
         device.getLogicalDevice().destroyImageView(depthImageView);
@@ -368,7 +372,7 @@ namespace triangle
             imageIndex);
     }
 
-    void Swapchain::loadTextureFromFile(const char* filename, TextureType textureType = TextureType::NONE)
+    void Swapchain::loadTextureFromFile(const char *filename, Texture &texturePropertiesOut, TextureType textureType = TextureType::NONE)
     {
         if (textureType == TextureType::NONE)
             throw std::runtime_error("loadTextureFile argument of 'textureType' must not be NONE");
@@ -387,20 +391,31 @@ namespace triangle
         ktxResult = ktxTexture_CreateFromNamedFile(filename, KTX_TEXTURE_CREATE_LOAD_IMAGE_DATA_BIT, &ktxTexture);
         assert(ktxResult == KTX_SUCCESS);
 
-        textureProperties.width = ktxTexture->baseWidth;
-        textureProperties.height = ktxTexture->baseHeight;
-        textureProperties.mipLevels = ktxTexture->numLevels;
+        texturePropertiesOut.width = ktxTexture->baseWidth;
+        texturePropertiesOut.height = ktxTexture->baseHeight;
+        texturePropertiesOut.mipLevels = ktxTexture->numLevels;
         ktx_uint8_t* ktxTextureData = ktxTexture_GetData(ktxTexture);
         ktx_size_t ktxTextureSize = ktxTexture_GetDataSize(ktxTexture);
 
         vk::Buffer stagingBuffer;
         vk::DeviceMemory stagingBufferMemory;
 
-        device.createBuffer(ktxTexture->baseWidth * ktxTexture->baseHeight * 4, 
-                            vk::BufferUsageFlagBits::eTransferSrc, 
-                            vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, 
-                            stagingBuffer, 
-                            stagingBufferMemory);
+        if (textureType == TextureType::TEXTURE_TYPE_2D)
+        {
+            device.createBuffer(ktxTexture->baseWidth * ktxTexture->baseHeight * 4, 
+                                vk::BufferUsageFlagBits::eTransferSrc, 
+                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent, 
+                                stagingBuffer, 
+                                stagingBufferMemory);
+        }
+        else if (textureType == TextureType::TEXTURE_TYPE_CUBEMAP)
+        {
+            device.createBuffer(ktxTextureSize,
+                                vk::BufferUsageFlagBits::eTransferSrc,
+                                vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent,
+                                stagingBuffer,
+                                stagingBufferMemory);
+        }
 
         vk::MemoryRequirements memRequirements = device.getLogicalDevice().getBufferMemoryRequirements(stagingBuffer);
         
@@ -410,39 +425,68 @@ namespace triangle
         device.getLogicalDevice().unmapMemory(stagingBufferMemory);
 
         std::vector<vk::BufferImageCopy> bufferCopyRegions;
-        bufferCopyRegions.reserve(textureProperties.mipLevels);
         uint32_t offset = 0;
 
-        for (uint32_t i = 0; i < textureProperties.mipLevels; ++i)
+        if (textureType == TextureType::TEXTURE_TYPE_2D)
         {
-            ktx_size_t offset;
-            KTX_error_code ret = ktxTexture_GetImageOffset(ktxTexture, i, 0, 0, &offset);
-            assert(ret == KTX_SUCCESS);
+            bufferCopyRegions.reserve(texturePropertiesOut.mipLevels);
 
-            vk::BufferImageCopy bufferCopyRegion;
-            bufferCopyRegion.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
-            bufferCopyRegion.imageSubresource.mipLevel = i;
-            bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
-            bufferCopyRegion.imageSubresource.layerCount = 1;
-            bufferCopyRegion.imageExtent.width = ktxTexture->baseWidth >> i;
-            bufferCopyRegion.imageExtent.height = ktxTexture->baseHeight >> i;
-            bufferCopyRegion.imageExtent.depth = 1;
-            bufferCopyRegion.bufferOffset = offset;
-            bufferCopyRegion.bufferRowLength = 0;
-            bufferCopyRegion.bufferImageHeight = 0;
-            bufferCopyRegion.imageOffset.x = 0;
-            bufferCopyRegion.imageOffset.y = 0;
-            bufferCopyRegion.imageOffset.z = 0;
+            for (uint32_t i = 0; i < texturePropertiesOut.mipLevels; ++i)
+            {
+                ktx_size_t offset;
+                KTX_error_code ret = ktxTexture_GetImageOffset(ktxTexture, i, 0, 0, &offset);
+                assert(ret == KTX_SUCCESS);
+    
+                vk::BufferImageCopy bufferCopyRegion;
+                bufferCopyRegion.imageSubresource.aspectMask = vk::ImageAspectFlagBits::eColor;
+                bufferCopyRegion.imageSubresource.mipLevel = i;
+                bufferCopyRegion.imageSubresource.baseArrayLayer = 0;
+                bufferCopyRegion.imageSubresource.layerCount = 1;
+                bufferCopyRegion.imageExtent.width = ktxTexture->baseWidth >> i;
+                bufferCopyRegion.imageExtent.height = ktxTexture->baseHeight >> i;
+                bufferCopyRegion.imageExtent.depth = 1;
+                bufferCopyRegion.bufferOffset = offset;
+                bufferCopyRegion.bufferRowLength = 0;
+                bufferCopyRegion.bufferImageHeight = 0;
+                bufferCopyRegion.imageOffset.x = 0;
+                bufferCopyRegion.imageOffset.y = 0;
+                bufferCopyRegion.imageOffset.z = 0;
 
-            bufferCopyRegions.push_back(bufferCopyRegion);
+                bufferCopyRegions.push_back(bufferCopyRegion);
+            }
+        }
+        else if (textureType == TextureType::TEXTURE_TYPE_CUBEMAP)
+        {
+            bufferCopyRegions.reserve(6);
+
+            for (uint32_t face = 0; face < 6; ++face)
+            {
+                for (uint32_t level = 0; level < texturePropertiesOut.mipLevels; ++level)
+                {
+                    ktx_size_t offset;
+                    KTX_error_code ret = ktxTexture_GetImageOffset(ktxTexture, level, 0, face, &offset);
+                    assert(ret == KTX_SUCCESS);
+
+                    vk::BufferImageCopy bufferCopyRegion(
+                        offset, 
+                        0, 
+                        0, 
+                        {vk::ImageAspectFlagBits::eColor, level, face, 1}, 
+                        {0, 0, 0}, 
+                        {ktxTexture->baseWidth >> level, ktxTexture->baseHeight >> level, 1}
+                    );
+
+                    bufferCopyRegions.push_back(bufferCopyRegion);
+                }
+            }
         }
 
         vk::ImageCreateInfo imageCreateInfo(
             vk::ImageCreateFlags(),                                                     // Flags
             vk::ImageType::e2D,                                                         // ImageType
             format,                                                                     // Format
-            {textureProperties.width, textureProperties.height, 1},                     // Extent
-            textureProperties.mipLevels,                                                // Miplevel
+            {texturePropertiesOut.width, texturePropertiesOut.height, 1},               // Extent
+            texturePropertiesOut.mipLevels,                                             // Miplevel
             1,                                                                          // Arraylayers
             vk::SampleCountFlagBits::e1,                                                // Sample count
             vk::ImageTiling::eOptimal,                                                  // Image Tiling
@@ -455,15 +499,18 @@ namespace triangle
             imageCreateInfo.flags = vk::ImageCreateFlagBits::eCubeCompatible;
         }
 
+        texturePropertiesOut.image = device.getLogicalDevice().createImage(imageCreateInfo);
 
-        textureProperties.image = device.getLogicalDevice().createImage(imageCreateInfo);
-
-        device.allocateAndBindImage(textureProperties.deviceMemory, textureProperties.image, vk::MemoryPropertyFlagBits::eDeviceLocal);
+        device.allocateAndBindImage(texturePropertiesOut.deviceMemory, texturePropertiesOut.image, vk::MemoryPropertyFlagBits::eDeviceLocal);
 
         vk::CommandBuffer copyCmd;
         device.beginSingleTimeCommands(copyCmd);
 
-        vk::ImageSubresourceRange subResourceRange(vk::ImageAspectFlagBits::eColor, 0, textureProperties.mipLevels, 0, 1);
+        vk::ImageSubresourceRange subResourceRange(vk::ImageAspectFlagBits::eColor, 0, texturePropertiesOut.mipLevels, 0, 1);
+        if (textureType == TextureType::TEXTURE_TYPE_CUBEMAP)
+        {
+            subResourceRange.layerCount = 6;
+        }
 
         vk::ImageMemoryBarrier imageMemoryBarrier(vk::AccessFlagBits::eNone,
                                                 vk::AccessFlagBits::eTransferWrite,
@@ -471,7 +518,7 @@ namespace triangle
                                                 vk::ImageLayout::eTransferDstOptimal,
                                                 0,
                                                 0,
-                                                textureProperties.image,
+                                                texturePropertiesOut.image,
                                                 subResourceRange);
 
         copyCmd.pipelineBarrier(vk::PipelineStageFlagBits::eHost,
@@ -481,7 +528,7 @@ namespace triangle
                                 nullptr,
                                 imageMemoryBarrier);
 
-        copyCmd.copyBufferToImage(stagingBuffer, textureProperties.image, vk::ImageLayout::eTransferDstOptimal, bufferCopyRegions);
+        copyCmd.copyBufferToImage(stagingBuffer, texturePropertiesOut.image, vk::ImageLayout::eTransferDstOptimal, bufferCopyRegions);
 
         imageMemoryBarrier.srcAccessMask = vk::AccessFlagBits::eTransferWrite;
         imageMemoryBarrier.dstAccessMask = vk::AccessFlagBits::eShaderRead;
@@ -495,7 +542,7 @@ namespace triangle
                                 nullptr, 
                                 imageMemoryBarrier);
 
-        textureProperties.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
+        texturePropertiesOut.imageLayout = vk::ImageLayout::eShaderReadOnlyOptimal;
 
         device.endSingleTimeCommand(copyCmd);
 
@@ -517,7 +564,7 @@ namespace triangle
                                             false,
                                             vk::CompareOp::eNever,
                                             0.f,
-                                            textureProperties.mipLevels,
+                                            texturePropertiesOut.mipLevels,
                                             vk::BorderColor::eFloatOpaqueWhite, 
                                             false);
 
@@ -528,14 +575,14 @@ namespace triangle
             samplerCreateInfo.addressModeW = vk::SamplerAddressMode::eClampToEdge;
         }
 
-        textureProperties.sampler = device.getLogicalDevice().createSampler(samplerCreateInfo);
+        texturePropertiesOut.sampler = device.getLogicalDevice().createSampler(samplerCreateInfo);
 
         vk::ImageViewCreateInfo imageViewCreateInfo(vk::ImageViewCreateFlags(), 
-                                                    textureProperties.image, 
+                                                    texturePropertiesOut.image, 
                                                     vk::ImageViewType::e2D, 
                                                     format, 
                                                     {vk::ComponentSwizzle::eR, vk::ComponentSwizzle::eG, vk::ComponentSwizzle::eB, vk::ComponentSwizzle::eA},
-                                                    {vk::ImageAspectFlagBits::eColor, 0, textureProperties.mipLevels, 0, 1});
+                                                    {vk::ImageAspectFlagBits::eColor, 0, texturePropertiesOut.mipLevels, 0, 1});
 
         if (textureType == TextureType::TEXTURE_TYPE_CUBEMAP)
         {
@@ -543,7 +590,7 @@ namespace triangle
             imageViewCreateInfo.subresourceRange.layerCount = 6;
         }
 
-        textureProperties.imageView = device.getLogicalDevice().createImageView(imageViewCreateInfo);
+        texturePropertiesOut.imageView = device.getLogicalDevice().createImageView(imageViewCreateInfo);
     }
 }
 

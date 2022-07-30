@@ -264,8 +264,10 @@ namespace triangle
         }
 
         float queuePriority = 1.0f;
+        
         vk::PhysicalDeviceFeatures deviceFeatures;
         deviceFeatures.samplerAnisotropy = VK_TRUE;
+        deviceFeatures.fillModeNonSolid = VK_TRUE;
 
         vk::DeviceQueueCreateInfo deviceQueueCreateInfo(vk::DeviceQueueCreateFlags(), queueFamilyIndex.graphics, 1, &queuePriority);
 

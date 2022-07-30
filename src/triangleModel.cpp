@@ -26,9 +26,11 @@ namespace triangle
 
         for (int i = 0; i < uniformBufferCount; ++i)
         {
+            device.getLogicalDevice().destroyBuffer(gameObjectUniformBuffers[i]);
+            device.getLogicalDevice().freeMemory(gameObjectUniformBufferMemories[i]);
 
-            device.getLogicalDevice().destroyBuffer(uniformBuffers[i]);
-            device.getLogicalDevice().freeMemory(uniformBufferMemories[i]);
+            device.getLogicalDevice().destroyBuffer(cubemapUniformBuffers[i]);
+            device.getLogicalDevice().freeMemory(cubemapUniformBufferMemories[i]);
         }
     }
 
@@ -71,7 +73,6 @@ namespace triangle
 
         // uv
         attributeDescription.setLocation(2);
-        attributeDescription.setFormat(vk::Format::eR32G32Sfloat);
         attributeDescription.setOffset(offsetof(Vertex, uv));
         attributeDescriptions.push_back(attributeDescription);
 
@@ -156,12 +157,18 @@ namespace triangle
 
         vk::DeviceSize bufferSize = dynamicAlignment * entitySize;
 
-        uniformBuffers.resize(bufferCount);
-        uniformBufferMemories.resize(bufferCount);
+        gameObjectUniformBuffers.resize(bufferCount);
+        gameObjectUniformBufferMemories.resize(bufferCount);
+
+        cubemapUniformBuffers.resize(bufferCount);
+        cubemapUniformBufferMemories.resize(bufferCount);
 
         vk::MemoryPropertyFlags memoryProperty(vk::MemoryPropertyFlagBits::eHostVisible | vk::MemoryPropertyFlagBits::eHostCoherent);
         for (int i = 0; i < bufferCount; ++i)
-            device.createBuffer(bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, memoryProperty, uniformBuffers[i], uniformBufferMemories[i]);
+        {
+            device.createBuffer(bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, memoryProperty, gameObjectUniformBuffers[i], gameObjectUniformBufferMemories[i]);
+            device.createBuffer(bufferSize, vk::BufferUsageFlagBits::eUniformBuffer, memoryProperty, cubemapUniformBuffers[i], cubemapUniformBufferMemories[i]);
+        }
     }
 
     void Model::bind(vk::CommandBuffer &commandBuffer, const vk::DeviceSize &vertexOffset, const vk::DeviceSize &indexOffset)

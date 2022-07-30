@@ -28,7 +28,8 @@ namespace triangle
         vk::RenderPass getMainRenderPass() { return swapchain->getMainRenderPass(); }
         float getAspectRatio() { return swapchain->getExtent().width / swapchain->getExtent().height; }
         ImGuiIO& getUiIO() { return ImGui::GetIO(); }
-        Swapchain::Texture getTextureProperties() { return swapchain->textureProperties; }
+        Swapchain::Texture get2DTextureProperties() { return swapchain->textureProperties; }
+        Swapchain::Texture getCubemapTextureProperties() { return swapchain->cubemapProperties; }
 
         void createUI(std::function<void()> frameCallback);
 

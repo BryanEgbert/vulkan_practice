@@ -67,10 +67,9 @@ void TriangleCamera::processCameraRotation(const float sensitivity)
     if(pitch < -89.0f)
         pitch = -89.0f;
 
-    glm::vec3 direction;
-    direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
-    direction.y = sin(glm::radians(pitch));
-    direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
-    CameraProperties.cameraFront = glm::normalize(direction);
+    CameraProperties.direction.x = cos(glm::radians(yaw)) * cos(glm::radians(pitch));
+    CameraProperties.direction.y = sin(glm::radians(pitch));
+    CameraProperties.direction.z = sin(glm::radians(yaw)) * cos(glm::radians(pitch));
+    CameraProperties.cameraFront = glm::normalize(CameraProperties.direction);
 }
 

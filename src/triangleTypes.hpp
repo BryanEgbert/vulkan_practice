@@ -29,7 +29,7 @@ namespace triangle
 		glm::vec3 pos;
 		glm::vec3 color;
 		// glm::vec3 normal;
-		glm::vec2 uv;
+		glm::vec3 uv;
 
 		// Initialized in triangleModel.cpp
 		static std::vector<vk::VertexInputBindingDescription> getBindingDesciptions();
@@ -55,8 +55,12 @@ namespace triangle
 	struct Material
 	{
 		vk::PipelineLayout pipelineLayout = VK_NULL_HANDLE;
-		vk::Pipeline pipeline = VK_NULL_HANDLE;
+		vk::Pipeline solidPipeline = VK_NULL_HANDLE;
+		vk::Pipeline wireframePipeline = VK_NULL_HANDLE;
 	};
+
+	struct Cubemap
+	{};
 
 	struct RenderModel
 	{

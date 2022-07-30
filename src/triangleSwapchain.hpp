@@ -28,7 +28,7 @@ namespace triangle
             vk::DeviceMemory deviceMemory;
             uint32_t width, height;
             uint32_t mipLevels;
-        } textureProperties;
+        } textureProperties, cubemapProperties;
 
         Swapchain(Device& device);
         ~Swapchain();
@@ -86,7 +86,7 @@ namespace triangle
         void createFrameBuffers();
         void createSyncObject();
         // void loadTextureFromBuffer
-        void loadTextureFromFile(const char* filename, TextureType textureType);
+        void loadTextureFromFile(const char *filename, Texture &texturePropertiesOut, TextureType textureType);
 
         vk::Format findSupportedFormat(const std::vector<vk::Format>& candidates, vk::ImageTiling tiling, vk::FormatFeatureFlags features);
         vk::Format findDepthFormat();

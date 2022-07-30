@@ -16,11 +16,13 @@ namespace triangle
         ~Descriptor();
 
         vk::DescriptorSet getDescriptorSet(uint32_t index) { return descriptorSets[index]; };
+        vk::DescriptorSet getCubemapDescriptorSet(uint32_t index) { return cubemapDescriptorSets[index]; };
         vk::DescriptorSetLayout getDescriptorSetLayout() { return descriptorSetLayout; };
 
         void createDescriptorPool();
         void createDescriptorSetLayout();
         void createDescriptorSets(const std::vector<vk::Buffer> &buffers, const Swapchain::Texture& textureProperties);
+        void createCubemapDescriptorSets(const std::vector<vk::Buffer> &buffers, const Swapchain::Texture &textureProperties);
 
     private:
         Device& device;
@@ -28,7 +30,7 @@ namespace triangle
         uint32_t descriptorCount;
 
         vk::DescriptorPool descriptorPool;
-        std::vector<vk::DescriptorSet> descriptorSets;
+        std::vector<vk::DescriptorSet> descriptorSets, cubemapDescriptorSets;
 
         vk::DescriptorSetLayout descriptorSetLayout;
         vk::DescriptorSetLayoutBinding descSetLayoutBinding;
